@@ -12,7 +12,7 @@ import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from astropy import units as u
 #%matplotlib notebook
-
+#get_ipython().magic('matplotlib inline')
 
 def get(path, params=None):
     # make HTTP GET request to path
@@ -104,9 +104,9 @@ ssfr = np.array([sample[k]['sSFR_1Gyr'].value for k in sub_ids])
 
 
 url_base = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
-#for i, sub_id in enumerate(sub_ids):
-#    sub = get(url_base+str(sub_id))
-#    mgas[i] = sub['mass_gas']*1e10/0.704
+for i, sub_id in enumerate(sub_ids):
+    sub = get(url_base+str(sub_id))
+    mgas[i] = sub['mass_gas']*1e10/0.704
     
 #     half_light[0,i] = cam0[np.argwhere(cam0_id==sub_id)].flatten() if (cam0_id==sub_id).any() else np.nan
 #     half_light[1,i] = cam1[np.argwhere(cam1_id==sub_id)].flatten() if (cam1_id==sub_id).any() else np.nan
@@ -120,17 +120,17 @@ url_base = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subha
 
 
 log_mstar = np.log10(mstar)
-#log_mgas = np.where(mgas!=0, np.log10(mgas), np.nan)
+log_mgas = np.where(mgas!=0, np.log10(mgas), np.nan)
 
 
 # In[8]:
 
 
-#plt.hist([log_mstar, log_mgas], 20, range=(6.2,11.91), histtype='step', label=["stars",'gas'])
-#plt.xlabel("$\mathrm{\log_{10}\ M\ [M_\odot]}$")
-#plt.title("Subhalos with $\mathrm{\log_{10}(sSFR) > -11\ yr^{-1}}$")
-#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
-#plt.legend(loc="upper left")
+# plt.hist([log_mstar, log_mgas], 20, range=(6.2,11.91), histtype='step', label=["stars",'gas'])
+# plt.xlabel("$\mathrm{\log_{10}\ M\ [M_\odot]}$")
+# #plt.title("Subhalos with $\mathrm{\log_{10}(sSFR) > -11\ yr^{-1}}$")
+# plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+# plt.legend(loc="upper left")
 
 
 # In[9]:
@@ -244,25 +244,32 @@ timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL)             * np.log(np.sqrt(omegaL*
 # print(subset)
 
 
-# In[32]:
+# In[27]:
+
 
 nbins =50
 bin_masses = np.empty((nbins, log_mstar.size))
 bin_masses2 = np.empty((4, log_mstar.size))
 inner_mass = np.empty_like(log_mstar)
-whole_ssfr = np.empty_like(log_mstar)
-half_ssfr = np.empty_like(log_mstar)
+w_inst_ssfr = np.empty_like(log_mstar)
+w_avg_ssfr = np.empty_like(log_mstar)
+h_inst_ssfr = np.empty_like(log_mstar)
+h_avg_ssfr = np.empty_like(log_mstar)
+
+time_bins = np.arange(0,14.01,0.01) # 0 to 14 Gyr in 10 Myr bins
+dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
 for i, s in enumerate(sub_ids):
     sub = get(url_base+str(s))
-    whole_ssfr[i] = sub["sfr"] # Msun/yr
-    half_ssfr[i] = sub["sfrinhalfrad"] # Msun/yr
+    w_inst_ssfr[i] = sub["sfr"]/mstar[i] # 1/yr
+    h_inst_ssfr[i] = sub["sfrinhalfrad"]/mstar[i] # 1/yr
     
     r_half = sample[s]['half_mass_rad']
     file = "stellar_cutouts/cutout_{}.hdf5".format(s)
     with h5py.File(file) as f:
         coords = f['PartType4']['Coordinates'][:,:]
         a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
+        init_mass = f['PartType4']['GFM_InitialMass'][:]
         curr_mass = f['PartType4']['Masses'][:]
 
     stars = [a > 0] # throw out wind particles (a < 0)
@@ -274,7 +281,15 @@ for i, s in enumerate(sub_ids):
     z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
     
+    init_mass = init_mass[stars] * 1e10 / 0.704 * u.Msun
     curr_mass = curr_mass[stars] * 1e10 / 0.704 * u.Msun
+    a = a[stars]
+    
+    form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
+                * np.log(np.sqrt(omegaL*1./omegaM*(a)**3) \
+                + np.sqrt(omegaL*1./omegaM*(a)**3+1)) \
+                * 3.08568e19/3.15576e16  \
+                * u.Gyr
     
     bins = np.linspace(0, 2, nbins, endpoint=True) # r_half
     binner = np.digitize(r/r_half, bins) # index len(bins) is overflow   
@@ -286,18 +301,49 @@ for i, s in enumerate(sub_ids):
     binner2 = np.digitize(r/r_half, bins2)
     for r_bin in range(1, bins2.size+1):
         if r_bin==1:
-            inner_mass[i] = np.sum(curr_mass[binner2==r_bin]).value
+            inner_mass[i] = np.sum(curr_mass[binner2==r_bin]).value            
         bin_masses2[r_bin-1, i] = (np.sum(curr_mass[binner2==r_bin])/mstar[i]).value
+        
+
+    # sSFR(1 Gyr) inside 1 half mass radius
+    inner = r/(r_half*u.kpc) < 1
+    form_history = np.sort(form_time[inner])
+    sort = np.argsort(form_time[inner])
+    mass_history = init_mass[inner][sort]
+
+    t_binner = np.digitize(form_history, bins=time_bins)
+    sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+    sfr *= u.Msun/u.Gyr; sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
+    #print(np.average(sfr[-101:])/np.sum(curr_mass[inner]))
+    h_avg_ssfr[i] = (np.average(sfr[-101:])/np.sum(curr_mass[inner])).value
+    
+    # sSFR(1 Gyr) for whole subhalo
+    form_history = np.sort(form_time)
+    sort = np.argsort(form_time)
+    mass_history = init_mass[sort]
+
+    t_binner = np.digitize(form_history, bins=time_bins)
+    sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+    sfr *= u.Msun/u.Gyr; sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
+
+    w_avg_ssfr[i] = (np.average(sfr[-101:])/np.sum(curr_mass)).value
 
 
-# In[26]:
+# In[31]:
 
 
 #plt.scatter(log_mstar, np.log10(inner_mass))
-#plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
+plt.scatter(log_mstar, inner_mass/mstar)
+plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 #plt.ylabel("$\mathrm{\log_{10}\ M_*(r<2\ kpc)\ [M_\odot]}$")
-#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+plt.ylabel("Fraction of $M_*$ with $r<2$ kpc")
+plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
 #plt.savefig("ssfr_mstar_scatter.png")
+plt.savefig("ssfr_mstar_ratio.png")
+
+
+# In[16]:
+
 
 avg = np.average(bin_masses, axis=1)
 wavg = np.average(bin_masses, axis=1, weights=mstar/mstar.sum())
@@ -317,4 +363,15 @@ plt.xlabel("$r/R_{M_{1/2}}$")
 plt.ylabel("Current Stellar Mass Fraction")
 plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr\^{-1}}$")
 plt.legend()
-plt.savefig("radial_mstar.png")
+
+
+# In[60]
+
+
+plt.scatter(np.log10(w_avg_ssfr), np.log10(w_inst_ssfr), marker='.', label="Whole Subhalo")
+plt.scatter(np.log10(h_avg_ssfr), np.log10(h_inst_ssfr), marker='.', label="$r < R_{M_{1/2}}$")
+x=np.linspace(-12,-10)
+plt.plot(x,x, c='m', label='1:1 eye guide')
+plt.legend()
+plt.xlabel("log(sSFR) over 1 Gyr")
+plt.ylabel("Instantaneous log(sSFR)")
