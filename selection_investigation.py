@@ -249,6 +249,7 @@ timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL)             * np.log(np.sqrt(omegaL*
 nbins =50
 bin_masses = np.empty((nbins, log_mstar.size))
 bin_masses2 = np.empty((4, log_mstar.size))
+inner_mass = np.empty_like(log_mstar)
 whole_ssfr = np.empty_like(log_mstar)
 half_ssfr = np.empty_like(log_mstar)
 
@@ -284,13 +285,15 @@ for i, s in enumerate(sub_ids):
     bins2 = np.array([0,2/r_half,1,2]) # std bins in r_half
     binner2 = np.digitize(r/r_half, bins2)
     for r_bin in range(1, bins2.size+1):
+        if r_bin==1:
+            inner_mass[i] = np.sum(curr_mass[binner2==r_bin]).value
         bin_masses2[r_bin-1, i] = (np.sum(curr_mass[binner2==r_bin])/mstar[i]).value
 
 
 # In[26]:
 
 
-#plt.scatter(log_mstar, np.log10(bin_masses[0]))
+#plt.scatter(log_mstar, np.log10(inner_mass))
 #plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 #plt.ylabel("$\mathrm{\log_{10}\ M_*(r<2\ kpc)\ [M_\odot]}$")
 #plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
