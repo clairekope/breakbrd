@@ -71,7 +71,7 @@ def periodic_centering(x, center, boxsixe):
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)
 
 sp.params['add_agb_dust_model'] = True 
-sp.params['add_dust_emission'] = True
+sp.params['add_dust_emission'] = False
 sp.params['add_igm_absorption'] = False
 sp.params['add_neb_emission'] = True
 sp.params['add_neb_continuum'] = True
