@@ -111,6 +111,10 @@ timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
 good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
+    if use_inst:
+        if sub_id not in inst_sfr: # it doesnt have gas!
+            continue
+            
     file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     if not os.path.isfile(file):
         print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
@@ -188,11 +192,8 @@ for sub_id in my_subs[good_ids]:
             sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
             
             if use_inst:
-                try:
-                    # Add instantaneous SFR from gas to last bin (i.e., now)
-                    sfr[-1] = inst_sfr[sub_id]['SFR']
-                except KeyError:
-                    pass
+                # Add instantaneous SFR from gas to last bin (i.e., now)
+                sfr[-1] = inst_sfr[sub_id]['SFR']
             
             # unweighted avg b/c time bins are currently equal sized
             # denom is current mass in this radial bin
@@ -228,10 +229,10 @@ for sub_id in my_subs[good_ids]:
     #plt.legend()
     #print("Rank", rank, "saving", sub_id); sys.stdout.flush()
     #plt.savefig("growth_{}.png".format(sub_id))
-
+    
     if time80_inner < time80_outer:
         my_cut_radii[sub_id] = subs[sub_id]
-    
+
     my_all_ssfr[sub_id] = ssfr_1Gyr
 
 cut_radii_lst = comm.gather(my_cut_radii, root=0)
@@ -258,3 +259,10 @@ if rank==0:
             all_ssfr[k] = v
     with open("cut4_all_ssfr.pkl","wb") as f:
         pickle.dump(all_ssfr, f)
+        
+    cut5 = {}
+    for k in cut_radii.keys():
+        if k in cut_ssfr:
+            cut5[k] = cut_ssfr[k]
+    with open("cut5.pkl", "wb") as f:
+        pickle.dump(cut5, f)
