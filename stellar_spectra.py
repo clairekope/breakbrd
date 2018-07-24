@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from mpi4py import MPI
 
+use_inst = True
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -89,11 +90,17 @@ if rank==0:
     with open("cut4.pkl","rb") as f:
         sample = pickle.load(f)
     sub_list = np.array([k for k in sample.keys()])
+    if use_inst:
+        with open("cut4_all_inst_ssfr.pkl","rb") as f:
+            inst_sfr = pickle.load(f)
 else:
     sample = {}
     sub_list = None
-    
-#sample = comm.bcast(sample,root=0)
+    if use_inst:
+        inst_sfr = {}
+                                   
+if use_inst:
+    inst_sfr = comm.bcast(inst_sfr, root=0)
 my_subs = scatter_work(sub_list, rank, size)
 good_ids = np.where(my_subs > -1)[0]
 
@@ -108,7 +115,10 @@ timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
           * 3.08568e19/3.15576e16 * u.Gyr
 
 for sub_id in my_subs[good_ids]:
-    
+    if use_inst:
+        if sub_id not in inst_sfr: # it doesnt have gas!
+            continue   
+                                   
     sub = get(url + str(sub_id))
     
     file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
@@ -167,12 +177,13 @@ for sub_id in my_subs[good_ids]:
         pop_form = form_time[z_binner==i]
         pop_mass = init_mass[z_binner==i]
         t_binner = np.digitize(pop_form, time_bins)
-        sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(1, dt.size) ])
+        sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
         sfr /= 1e9 # to Msun/Gyr
         #print(sfr.nonzero())
 
         if use_inst:
-            sfr[-1] = 123123123123123
+            # Add instantaneous SFR from gas to last bin (i.e., now)
+            sfr[-1] = inst_sfr[sub_id]['SFR']
 
         sp.set_tabular_sfh(time_avg, sfr)
         wave, spec = sp.get_spectrum(tage=14.0)

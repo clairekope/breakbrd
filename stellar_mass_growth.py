@@ -187,7 +187,7 @@ for sub_id in my_subs[good_ids]:
             t_binner = np.digitize(form_history, bins=time_bins)
             
             # find SFR(t) from the beginning of the universe
-            sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(1,dt.size) ])
+            sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
             sfr *= u.Msun/u.Gyr
             sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
             
