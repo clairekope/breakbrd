@@ -15,7 +15,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-use_inst = False # include instantaneous SFR
+use_inst = True # include instantaneous SFR
 
 def scatter_work(array, mpi_rank, mpi_size, root=0):
     if mpi_rank == root:
