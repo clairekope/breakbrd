@@ -83,6 +83,7 @@ subs = comm.bcast(subs,root=0)
 my_subs = scatter_work(sub_list, rank, size)
 my_cut_radii = {}
 my_cut_ssfr = {}
+my_all_ssfr = {}
 
 url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 cutout = {"stars":
@@ -213,15 +214,17 @@ for sub_id in my_subs[good_ids]:
 
     if time80_inner < time80_outer:
         my_cut_radii[sub_id] = subs[sub_id]
+    
+    my_all_ssfr[sub_id]["sSFR_1Gyr"] = ssfr_1Gyr
 
 cut_radii_lst = comm.gather(my_cut_radii, root=0)
 cut_ssfr_lst = comm.gather(my_cut_ssfr, root=0)
+all_ssfr_lst = comm.gather(my_all_ssfr, root=0)
 if rank==0:
     cut_radii = {}
     for dic in cut_radii_lst:
         for k, v in dic.items():
-            cut_radii[k] = v
-            
+            cut_radii[k] = v            
     with open("cut_radii.pkl", "wb") as f:
         pickle.dump(cut_radii, f)
 
@@ -229,6 +232,12 @@ if rank==0:
     for dic in cut_ssfr_lst:
         for k,v in dic.items():
             cut_ssfr[k] = v
-
     with open("cut_ssfr.pkl","wb") as f:
         pickle.dump(cut_ssfr, f)
+
+    all_ssfr = {}
+    for dic in all_ssfr_lst:
+        for k,v in dic.items():
+            all_ssfr[k] = v
+    with open("cut4_all_ssfr.pkl","wb") as f:
+        pickle.dump(all_ssfr, f)

@@ -177,4 +177,4 @@ for sub_id in my_subs[good_ids]:
 
     full_spec = np.nansum(spec_z, axis=0)
     print("Rank",rank,"writing spectra_{:06d}.txt".format(sub_id));sys.stdout.flush()
-    np.savetxt("spectra_{:06d}.txt".format(sub_id), np.hstack((wave, full_spec)))
+    np.savetxt("spectra_{:06d}.txt".format(sub_id), np.vstack((wave, full_spec)))

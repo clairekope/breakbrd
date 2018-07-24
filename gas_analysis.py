@@ -96,37 +96,50 @@ for sub_id in my_subs[good_ids]:
     if not os.path.isfile(file):
         print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
         get(url + str(sub_id) + "/cutout.hdf5", cutout)
+    sub = get(url+str(sub_id))
 
-#     with h5py.File(file) as f:
-#         coords = f['PartType4']['Coordinates'][:,:]
-#         a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
-#         init_mass = f['PartType4']['GFM_InitialMass'][:]
-#         curr_mass = f['PartType4']['Masses'][:]
+    with h5py.File(file) as f:
+        coords = f['PartType0']['Coordinates'][:,:]
+        #mass = f['PartType0']['Masses'][:]
+        #dens = f['PartType0']['Density'][:]
+        #inte = f['PartType0']['InternalEnergy'][:]
+        #HI = f['PartType0']['NeutralHydrogenAbundance'][:]
+        sfr = f['PartType0']['StarFormationRate'][:]
 
-#     x = coords[:,0]
-#     y = coords[:,1]
-#     z = coords[:,2]
-#     x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc / 0.704
-#     y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc / 0.704
-#     z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
-#     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
-    
-#     mass *= 1e10 / 0.704 * u.Msun
+    with h5py.File("stellar_cutouts/cutout_{}.hdf5".format(sub_id)) as f:
+        scoords = f['PartType4']['Coordinates'][:]
+        smass = f['PartType4']['Masses'][:]
+        a = f['PartType4']['GFM_FormationTime']
 
-# cut_ssfr_lst = comm.gather(my_cut_ssfr, root=0)
-# if rank==0:
-#     cut_radii = {}
-#     for dic in cut_radii_lst:
-#         for k, v in dic.items():
-#             cut_radii[k] = v
-            
-#     with open("cut_radii.pkl", "wb") as f:
-#         pickle.dump(cut_radii, f)
+    x = coords[:,0]
+    y = coords[:,1]
+    z = coords[:,2]
+    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc / 0.704
+    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc / 0.704
+    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
+    r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)    
+    mass *= 1e10 / 0.704 * u.Msun
+    tot_sfr = np.sum(sfr[r < 2*u.kpc])
 
-#     cut_ssfr = {}
-#     for dic in cut_ssfr_lst:
-#         for k,v in dic.items():
-#             cut_ssfr[k] = v
+    sx = scoords[:,0]
+    sy = scoords[:,1]
+    sz = scoords[:,2]
+    sx_rel = periodic_centering(sx, sub['pos_x'], boxsize) * u.kpc / 0.704
+    sy_rel = periodic_centering(sy, sub['pos_x'], boxsize) * u.kpc / 0.704
+    sz_rel = periodic_centering(sz, sub['pos_x'], boxsize) * u.kpc / 0.704
+    sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
+    smass *= 1e10 / 0.704 * u.Msun
 
-#     with open("cut_ssfr.pkl","wb") as f:
-#         pickle.dump(cut_ssfr, f)
+    ssfr = tot_sfr / np.sum(smass[sr < 2*u.kpc])
+    if ssfr > 1e-11:
+        my_cut_inst_ssfr[sub_id] = subs[sub_id]
+
+cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
+if rank==0:
+    cut_ssfr = {}
+    for dic in cut_ssfr_lst:
+        for k,v in dic.items():
+            cut_ssfr[k] = v
+
+    with open("cut_inst_ssfr.pkl","wb") as f:
+        pickle.dump(cut_ssfr, f)
