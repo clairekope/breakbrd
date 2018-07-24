@@ -15,6 +15,8 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
+use_inst = False # include instantaneous SFR
+
 def scatter_work(array, mpi_rank, mpi_size, root=0):
     if mpi_rank == root:
         scatter_total = array.size
@@ -76,11 +78,18 @@ if rank==0:
     with open("cut4.pkl","rb") as f:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
+    if use_inst:
+        with open("cut4_inst_sfr.pkl","rb") as f:
+            inst_sfr = pickle.load(f)
 else:
     subs = {}
     sub_list = None
+    if use_inst:
+        inst_sfr = {}
 subs = comm.bcast(subs,root=0)
 my_subs = scatter_work(sub_list, rank, size)
+if use_inst:
+    inst_sfr = comm.bcast(inst_ssfr, root=0)
 my_cut_radii = {}
 my_cut_ssfr = {}
 my_all_ssfr = {}
@@ -173,9 +182,14 @@ for sub_id in my_subs[good_ids]:
             # place stars in this radial bin into formation time bins
             t_binner = np.digitize(form_history, bins=time_bins)
             
-            sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+            # find SFR(t) from the beginning of the universe
+            sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(1,dt.size) ])
             sfr *= u.Msun/u.Gyr
             sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
+            
+            if use_inst:
+                # Add instantaneous SFR from gas to last bin (i.e., now)
+                sfr[-1] = inst_sfr[sub_id]['SFR']
             
             # unweighted avg b/c time bins are currently equal sized
             # denom is current mass in this radial bin

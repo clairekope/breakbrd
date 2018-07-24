@@ -263,7 +263,7 @@ for i, s in enumerate(sub_ids):
     mass_history = init_mass[inner][sort]
 
     t_binner = np.digitize(form_history, bins=time_bins)
-    sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+    sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(1,dt.size) ])
     sfr *= u.Msun/u.Gyr; sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
     #print(np.average(sfr[-101:])/np.sum(curr_mass[inner]))
     h_avg_ssfr[i] = (np.average(sfr[-101:])/np.sum(curr_mass[inner])).value
@@ -274,7 +274,7 @@ for i, s in enumerate(sub_ids):
     mass_history = init_mass[sort]
 
     t_binner = np.digitize(form_history, bins=time_bins)
-    sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+    sfr = np.array([ mass_history.value[t_binner==j].sum()/dt[j] for j in range(1,dt.size) ])
     sfr *= u.Msun/u.Gyr; sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
 
     w_avg_ssfr[i] = (np.average(sfr[-101:])/np.sum(curr_mass)).value
