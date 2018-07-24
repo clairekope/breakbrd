@@ -215,7 +215,7 @@ for sub_id in my_subs[good_ids]:
     if time80_inner < time80_outer:
         my_cut_radii[sub_id] = subs[sub_id]
     
-    my_all_ssfr[sub_id]["sSFR_1Gyr"] = ssfr_1Gyr
+    my_all_ssfr[sub_id] = ssfr_1Gyr
 
 cut_radii_lst = comm.gather(my_cut_radii, root=0)
 cut_ssfr_lst = comm.gather(my_cut_ssfr, root=0)
