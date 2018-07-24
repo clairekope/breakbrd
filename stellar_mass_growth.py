@@ -79,7 +79,7 @@ if rank==0:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
-        with open("cut4_inst_sfr.pkl","rb") as f:
+        with open("cut4_all_inst_ssfr.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     subs = {}
@@ -89,7 +89,7 @@ else:
 subs = comm.bcast(subs,root=0)
 my_subs = scatter_work(sub_list, rank, size)
 if use_inst:
-    inst_sfr = comm.bcast(inst_ssfr, root=0)
+    inst_sfr = comm.bcast(inst_sfr, root=0)
 my_cut_radii = {}
 my_cut_ssfr = {}
 my_all_ssfr = {}
@@ -188,8 +188,11 @@ for sub_id in my_subs[good_ids]:
             sfr = sfr.to(u.Msun/u.yr) # divide by 1e9
             
             if use_inst:
-                # Add instantaneous SFR from gas to last bin (i.e., now)
-                sfr[-1] = inst_sfr[sub_id]['SFR']
+                try:
+                    # Add instantaneous SFR from gas to last bin (i.e., now)
+                    sfr[-1] = inst_sfr[sub_id]['SFR']
+                except KeyError:
+                    pass
             
             # unweighted avg b/c time bins are currently equal sized
             # denom is current mass in this radial bin
