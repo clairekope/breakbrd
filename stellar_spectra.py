@@ -167,9 +167,12 @@ for sub_id in my_subs[good_ids]:
         pop_form = form_time[z_binner==i]
         pop_mass = init_mass[z_binner==i]
         t_binner = np.digitize(pop_form, time_bins)
-        sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+        sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(1, dt.size) ])
         sfr /= 1e9 # to Msun/Gyr
         #print(sfr.nonzero())
+
+        if use_inst:
+            sfr[-1] = 123123123123123
 
         sp.set_tabular_sfh(time_avg, sfr)
         wave, spec = sp.get_spectrum(tage=14.0)
