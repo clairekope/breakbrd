@@ -22,8 +22,8 @@ for f in files:
     sub_id = int(f[-10:-4])
     dat = np.genfromtxt(f)
 
-    wave = dat[:int(dat.size/2)]
-    spec = dat[int(dat.size/2):]
+    wave = dat[0,:]
+    spec = dat[1,:]
 
     d4000[sub_id] = get_dn4000(wave, spec)
 
