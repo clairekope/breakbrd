@@ -131,8 +131,8 @@ for sub_id in my_subs[good_ids]:
     sy = scoords[:,1]
     sz = scoords[:,2]
     sx_rel = periodic_centering(sx, sub['pos_x'], boxsize) * u.kpc / 0.704
-    sy_rel = periodic_centering(sy, sub['pos_x'], boxsize) * u.kpc / 0.704
-    sz_rel = periodic_centering(sz, sub['pos_x'], boxsize) * u.kpc / 0.704
+    sy_rel = periodic_centering(sy, sub['pos_y'], boxsize) * u.kpc / 0.704
+    sz_rel = periodic_centering(sz, sub['pos_z'], boxsize) * u.kpc / 0.704
     sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
     smass = smass * 1e10 / 0.704 * u.Msun
 
