@@ -36,7 +36,7 @@ def periodic_centering(x, center, boxsixe):
     if center < boxsize/2:
         center +=  boxsize
     crit = np.logical_and(xx >= center-boxsize/2,
-                          xx <= center+boxsize/2)
+                          xx < center+boxsize/2)
     #try:
     assert x.size == xx[crit].size
     #except AssertionError:
@@ -57,7 +57,8 @@ def periodic_centering(x, center, boxsixe):
 # with open("cut5.pkl","wb") as f:
 #     pickle.dump(cut5,f)
 
-with open("cut5.pkl","rb") as f:
+#with open("cut5.pkl","rb") as f:
+with open("cut_final.pkl","rb") as f:
     sample = pickle.load(f)
 
 # with h5py.File('nonparametric_morphologies.hdf5') as f:
@@ -96,21 +97,22 @@ log_mgas = np.where(mgas!=0, np.log10(mgas), np.nan)
 plt.hist([log_mstar, log_mgas], 20, range=(6.2,11.91), histtype='step', label=["stars",'gas'])
 plt.xlabel("$\mathrm{\log_{10}\ M\ [M_\odot]}$")
 #plt.title("Subhalos with $\mathrm{\log_{10}(sSFR) > -11\ yr^{-1}}$")
-plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+plt.title("Subhalos with d4000 < 1.4")
 plt.legend(loc="upper left")
-plt.savefig("star_+_gas_mass_dist.png"); plt.clf()
+plt.savefig("final/star_+_gas_mass_dist.png"); plt.clf()
 
 plt.scatter(log_mstar, log_mgas, marker='.')
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("$\mathrm{\log_{10}\ M_{gas}\ [M_\odot]}$")
 #plt.title("Subhalos with $\mathrm{\log_{10}(sSFR) > -11\ yr^{-1}}$")
 plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
-plt.savefig("star_v_gas_mass.png"); plt.clf()
+plt.savefig("final/star_v_gas_mass.png"); plt.clf()
 
 plt.hist(np.log10(ssfr),15)
 plt.xlabel("$\mathrm{\log_{10}\ sSFR(1\ Gyr)\ [M_\odot]}$")
 plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
-plt.savefig("ssfr_dist.png"); plt.clf()
+plt.savefig("final/ssfr_dist.png"); plt.clf()
 
 # plt.scatter(log_mstar, half_mass, marker='.', label='Half Mass')
 # plt.scatter(log_mstar, half_light_mean, marker='.', label='<Half Light>')
@@ -132,69 +134,70 @@ timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
 # ax = ax.flatten()
 
 # subset = np.random.choice(sub_ids, 6)
-# for i, s in enumerate(subset):
-#     sub = get(url_base+str(s))
-#     r_half = sample[s]['half_mass_rad']
-#     file = "stellar_cutouts/cutout_{}.hdf5".format(s)
-#     with h5py.File(file) as f:
-#         coords = f['PartType4']['Coordinates'][:,:]
-#         a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
-#         init_mass = f['PartType4']['GFM_InitialMass'][:]
+for i, s in enumerate(sub_ids):
+    sub = get(url_base+str(s))
+    r_half = sample[s]['half_mass_rad']
+    file = "stellar_cutouts/cutout_{}.hdf5".format(s)
+    with h5py.File(file) as f:
+        coords = f['PartType4']['Coordinates'][:,:]
+        a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
+        init_mass = f['PartType4']['GFM_InitialMass'][:]
 
-#     stars = [a > 0] # throw out wind particles (a < 0)
-#     x = coords[:,0][stars]
-#     y = coords[:,1][stars]
-#     z = coords[:,2][stars]
-#     x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc / 0.704
-#     y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc / 0.704
-#     z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
-#     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
+    stars = [a > 0] # throw out wind particles (a < 0)
+    x = coords[:,0][stars]
+    y = coords[:,1][stars]
+    z = coords[:,2][stars]
+    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc / 0.704
+    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc / 0.704
+    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
+    r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
     
-#     init_mass = init_mass[stars] * 1e10 / 0.704 * u.Msun
-#     a = a[stars]
+    init_mass = init_mass[stars] * 1e10 / 0.704 * u.Msun
+    a = a[stars]
 
-#     form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-#                 * np.log(np.sqrt(omegaL*1./omegaM*(a)**3) \
-#                 + np.sqrt(omegaL*1./omegaM*(a)**3+1)) \
-#                 * 3.08568e19/3.15576e16  \
-#                 * u.Gyr
-#     age = timenow-form_time
+    form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
+                * np.log(np.sqrt(omegaL*1./omegaM*(a)**3) \
+                + np.sqrt(omegaL*1./omegaM*(a)**3+1)) \
+                * 3.08568e19/3.15576e16  \
+                * u.Gyr
+    age = timenow-form_time
 
-#     bins = [0, 2, 1*r_half, 2*r_half] * u.kpc
-#     binner = np.digitize(r, bins) # index len(bins) is overflow
+    fig, ax = plt.subplots()
+    bins = [0, 2, 1*r_half, 2*r_half] * u.kpc
+    binner = np.digitize(r, bins) # index len(bins) is overflow
     
-#     for r_bin in range(1, bins.size+1):
-#         form_history = np.sort(form_time[binner==r_bin])
-#         sort = np.argsort(form_time[binner==r_bin])
-#         age_progrssn = age[binner==r_bin][sort]       # sort ages by formation time; oldest first
-#         mass_history = init_mass[binner==r_bin][sort] # sort initial mass by formation time; 
-#                                                       #     early mass first
-#         mass_frac = np.cumsum(mass_history)/np.sum(mass_history)
+    for r_bin in range(1, bins.size+1):
+        form_history = np.sort(form_time[binner==r_bin])
+        sort = np.argsort(form_time[binner==r_bin])
+        age_progrssn = age[binner==r_bin][sort]       # sort ages by formation time; oldest first
+        mass_history = init_mass[binner==r_bin][sort] # sort initial mass by formation time; 
+                                                      #     early mass first
+        mass_frac = np.cumsum(mass_history)/np.sum(mass_history)
     
-#         assert np.all(mass_frac[1:] >= mass_frac[:-1])       # monotonically increasing
-#         assert np.all(age_progrssn[1:] <= age_progrssn[:-1]) # monotonically decreasing
+        assert np.all(mass_frac[1:] >= mass_frac[:-1])       # monotonically increasing
+        assert np.all(age_progrssn[1:] <= age_progrssn[:-1]) # monotonically decreasing
 
-#         if r_bin==1:
-#             ax[i].plot(age_progrssn.value, mass_frac, c='pink', # X11 colors
-#                      label="$<2\mathrm{\ kpc}$")
-#         elif r_bin==2:
-#             ax[i].plot(age_progrssn.value, mass_frac, c='plum',
-#                      label="$2\mathrm{\ kpc} - 1R_{M_{1/2}}$")
-#         elif r_bin==3:
-#             ax[i].plot(age_progrssn.value, mass_frac, c='orchid',
-#                      label="$1R_{M_{1/2}} - 2R_{M_{1/2}}$")
-#         elif r_bin==4:
-#             ax[i].plot(age_progrssn.value, mass_frac, c='purple',
-#                      label="$>2R_{M_{1/2}}$")
+        if r_bin==1:
+            ax.plot(age_progrssn.value, mass_frac, c='pink', # X11 colors
+                     label="$<2\mathrm{\ kpc}$")
+        elif r_bin==2:
+            ax.plot(age_progrssn.value, mass_frac, c='plum',
+                     label="$2\mathrm{\ kpc} - 1R_{M_{1/2}}$")
+        elif r_bin==3:
+            ax.plot(age_progrssn.value, mass_frac, c='orchid',
+                     label="$1R_{M_{1/2}} - 2R_{M_{1/2}}$")
+        elif r_bin==4:
+            ax.plot(age_progrssn.value, mass_frac, c='purple',
+                     label="$>2R_{M_{1/2}}$")
             
-#     #lim = (0, np.max(np.log10(age.value)))
-#     lim = ax[i].set_xlim((0,15))
-#     ax[i].set_ylim(0,1)
-#     ax[i].hlines([0.5,0.8], *lim, linestyle=":", color="gray")
-# ax[3].set_xlabel("Age (Gyr)")
-# ax[3].set_ylabel("Stellar Mass Fraction")
-# ax[3].legend(loc="lower left", fontsize='xx-small')
-# fig.savefig("random_sample.png"); plt.clf()
+    #lim = (0, np.max(np.log10(age.value)))
+    lim = ax.set_xlim((0,15))
+    ax.set_ylim(0,1)
+    ax.hlines([0.5,0.8,0.9], *lim, linestyle=":", color="gray")
+    ax.set_xlabel("Age (Gyr)")
+    ax.set_ylabel("Stellar Mass Fraction")
+    ax.legend(loc="lower left")
+    fig.savefig("final/{:06d}_radial_history.png".format(s)); plt.clf()
 # print(subset)
 
 
@@ -284,13 +287,13 @@ plt.scatter(log_mstar, np.log10(inner_mass))
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("$\mathrm{\log_{10}\ M_*(r<2\ kpc)\ [M_\odot]}$")
 plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
-plt.savefig("ssfr_mstar_scatter.png"); plt.clf()
+plt.savefig("final/ssfr_mstar_scatter.png"); plt.clf()
 
 plt.scatter(log_mstar, inner_mass/mstar)
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("Fraction of $M_*$ with $r<2$ kpc")
 plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
-plt.savefig("ssfr_mstar_ratio.png"); plt.clf()
+plt.savefig("final/ssfr_mstar_ratio.png"); plt.clf()
 
 
 avg = np.average(bin_masses, axis=1)
@@ -311,7 +314,7 @@ plt.xlabel("$r/R_{M_{1/2}}$")
 plt.ylabel("Current Stellar Mass Fraction")
 plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr\^{-1}}$")
 plt.legend()
-plt.savefig("stellar_mass_frac.png"); plt.clf()
+plt.savefig("final/stellar_mass_frac.png"); plt.clf()
 
 plt.scatter(np.log10(w_avg_ssfr), np.log10(w_inst_ssfr), marker='.', label="Whole Subhalo")
 plt.scatter(np.log10(h_avg_ssfr), np.log10(h_inst_ssfr), marker='.', label="$r < R_{M_{1/2}}$")
@@ -320,4 +323,4 @@ plt.plot(x,x, c='m', label='1:1 eye guide')
 plt.legend()
 plt.xlabel("log(sSFR) over 1 Gyr")
 plt.ylabel("Instantaneous log(sSFR)")
-plt.savefig("inst_v_avg_ssfr.png"); plt.clf()
+plt.savefig("final/inst_v_avg_ssfr.png"); plt.clf()

@@ -65,7 +65,7 @@ def periodic_centering(x, center, boxsixe):
     if center < boxsize/2:
         center +=  boxsize
     crit = np.logical_and(xx >= center-boxsize/2,
-                          xx <= center+boxsize/2)
+                          xx < center+boxsize/2)
     #try:
     assert x.size == xx[crit].size
     #except AssertionError:
