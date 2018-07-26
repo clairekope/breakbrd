@@ -203,7 +203,7 @@ for sub_id in my_subs[good_ids]:
             
             lim = 1e-11 / u.yr
             
-            if ssfr_1Gyr > lim or ssfr_100Myr > lim or ssfr_50Myr > lim:
+            if ssfr_1Gyr > lim: #or ssfr_100Myr > lim or ssfr_50Myr > lim:
                 my_cut_ssfr[sub_id] = subs[sub_id]
                 my_cut_ssfr[sub_id]["sSFR_1Gyr"]   = ssfr_1Gyr
                 my_cut_ssfr[sub_id]["sSFR_100Myr"] = ssfr_100Myr
