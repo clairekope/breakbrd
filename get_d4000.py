@@ -4,6 +4,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 import glob
 
+inst = True
 dust = False
 
 def get_dn4000(wave,spec):
@@ -14,7 +15,7 @@ def get_dn4000(wave,spec):
 
     return d4000
 
-files = glob.glob("spectra/{}dust/spectra_*.txt".format("" if dust else "no_"))
+files = glob.glob("spectra/{}inst/{}dust/spectra_*.txt".format("" if inst else "no_", "" if dust else "no_"))
 d4000 = {}
 
 for f in files:
@@ -27,5 +28,5 @@ for f in files:
 
     d4000[sub_id] = get_dn4000(wave, spec)
 
-with open("d4000_{}dust.pkl".format("" if dust else "no_"), "wb") as pkl:
+with open("d4000_{}dust{}.pkl".format("" if dust else "no_", "" if inst else "_no_inst"), "wb") as pkl:
     pickle.dump(d4000, pkl)

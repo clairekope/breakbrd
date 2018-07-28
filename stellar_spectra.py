@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from mpi4py import MPI
 
-use_inst = True
+inst = True
+dust = True
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -72,7 +73,7 @@ def periodic_centering(x, center, boxsixe):
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)
 
 sp.params['add_agb_dust_model'] = True 
-sp.params['add_dust_emission'] = False
+sp.params['add_dust_emission'] = True if dust else False
 sp.params['add_igm_absorption'] = False
 sp.params['add_neb_emission'] = True
 sp.params['add_neb_continuum'] = True
@@ -80,8 +81,8 @@ sp.params['add_stellar_remnants'] = False
     
 sp.params['dust_type'] = 0 # Charlot & Fall type; parameters from Torrey+15
 sp.params['dust_tesc'] = np.log10(3e7)
-sp.params['dust1'] = 1
-sp.params['dust2'] = 1.0/3.0 
+sp.params['dust1'] = 1 if dust else 0.0
+sp.params['dust2'] = 1.0/3.0 if dust else 0.0
 
 sp.params['imf_type'] = 1 # Chabrier (2003)
 
@@ -90,16 +91,16 @@ if rank==0:
     with open("cut4.pkl","rb") as f:
         sample = pickle.load(f)
     sub_list = np.array([k for k in sample.keys()])
-    if use_inst:
+    if inst:
         with open("cut4_all_inst_ssfr.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     sample = {}
     sub_list = None
-    if use_inst:
+    if inst:
         inst_sfr = {}
                                    
-if use_inst:
+if inst:
     inst_sfr = comm.bcast(inst_sfr, root=0)
 my_subs = scatter_work(sub_list, rank, size)
 good_ids = np.where(my_subs > -1)[0]
@@ -115,7 +116,7 @@ timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
           * 3.08568e19/3.15576e16 * u.Gyr
 
 for sub_id in my_subs[good_ids]:
-    if use_inst:
+    if inst:
         if sub_id not in inst_sfr: # it doesnt have gas!
             continue   
                                    
@@ -181,7 +182,7 @@ for sub_id in my_subs[good_ids]:
         sfr /= 1e9 # to Msun/Gyr
         #print(sfr.nonzero())
 
-        if use_inst:
+        if inst:
             # Add instantaneous SFR from gas to last bin (i.e., now)
             sfr[-1] = inst_sfr[sub_id]['SFR'].value
 
@@ -191,4 +192,7 @@ for sub_id in my_subs[good_ids]:
 
     full_spec = np.nansum(spec_z, axis=0)
     print("Rank",rank,"writing spectra_{:06d}.txt".format(sub_id));sys.stdout.flush()
-    np.savetxt("spectra_{:06d}.txt".format(sub_id), np.vstack((wave, full_spec)))
+    np.savetxt("spectra/{}inst/{}dust/spectra_{:06d}.txt".format("no_" if not inst else "",
+                                                                 "no_" if not dust else "",
+                                                                 sub_id),
+               np.vstack((wave, full_spec)))
