@@ -10,7 +10,7 @@ from astropy import units as u
 from astropy import constants as c
 from photutils import CircularAnnulus, aperture_photometry
 from mpi4py import MPI
-
+from copy import deepcopy
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -128,7 +128,8 @@ if not os.path.isfile("cut2.pkl"):
             subhalo = get(snap_url + str(sub_id))
             my_cut2[sub_id] = {"M_r":abs_mag_r,
                                "view":np.argmin(abs_mag_r),
-                               "half_mass_rad":subhalo["halfmassrad_stars"]/0.704} # kpc/h to kpc
+                               "half_mass_rad":subhalo["halfmassrad_stars"]/0.704, # kpc/h to kpc
+                               "stellar_mass":subhalo['mass_stars']*1e10/0.704} 
             #cut2[sub_id] = abs_mag_r
             
         else:
@@ -145,7 +146,6 @@ if not os.path.isfile("cut2.pkl"):
             pickle.dump(cut2, f)
     else:
         cut2 = None
-
 else: # cut2 dict already generated
     if rank == 0:
         with open("cut2.pkl","rb") as f:
@@ -161,7 +161,20 @@ if rank == 0:
     cut2_subhalos = np.array([k for k in cut2.keys()])
 else:
     cut2_subhalos = None
+    
 
+# cut 2.5: pass the M_r cut but less than 1e12 Msun in stars
+if rank==0:
+    print("copying...")
+    cut2_new = deepcopy(cut2)
+    print("copy done")
+    for k in cut2.keys():
+        if cut2_new[k]['stellar_mass'] > 1e12:
+            cut2_new.pop(k)
+    with open("cut2.5.pkl", "wb") as f:
+        pickle.dump(cut2_new, f)
+
+        
 if not os.path.isfile("cut3.pkl"):
     #
     # Cut on g-r in disk
@@ -211,7 +224,8 @@ if not os.path.isfile("cut3.pkl"):
             my_cut3[sub_id] = {'g-r':g_mag-r_mag, 
                                'view':cut2[sub_id]['view'],
                                'half_mass_rad':cut2[sub_id]['half_mass_rad'],
-                               'M_r':cut2[sub_id]['M_r']}
+                               'M_r':cut2[sub_id]['M_r'],
+                               'stellar_mass':cut2[sub_id]['stellar_mass']}
 
     cut3_lst = comm.gather(my_cut3, root=0)
     if rank==0:
@@ -224,7 +238,6 @@ if not os.path.isfile("cut3.pkl"):
             pickle.dump(cut3, f)
     else:
         cut3 = None
-
 else: # cut3 dict already generated                                                                
     if rank == 0:
         with open("cut3.pkl","rb") as f:
@@ -233,6 +246,7 @@ else: # cut3 dict already generated
     else:
         cut3 = None
 
+# Make cut 4, a polish of cut 3
 cut3 = comm.bcast(cut3, root=0)
 if rank==0:
     print("Galaxies from g-r cut:", len(cut3))
@@ -240,8 +254,7 @@ if rank==0:
     cut4 = {}
 
     for sub_id in cut3.keys():
-        star_mass = get(snap_url + str(sub_id))['mass_stars']
-        if star_mass*1e10/0.704 < 1e12 and cut3[sub_id]['half_mass_rad'] > 2:
+        if cut3[sub_id]['stellar_mass'] < 1e12 and cut3[sub_id]['half_mass_rad'] > 2:
             cut4[sub_id] = cut3[sub_id]
             cut4[sub_id]['stellar_mass'] = star_mass * 1e10 / 0.704 # Msun
 
