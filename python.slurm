@@ -8,7 +8,7 @@ cd $SLURM_SUBMIT_DIR
 
 # The pipeline
 #mpirun python3 illustris_cuts.py
-#mpirun python3 gas_analysis.py
+mpirun python3 gas_analysis.py
 mpirun python3 stellar_mass_growth.py
-#mpirun python3 stellar_spectra.py
-#python3 get_d4000.py
+mpirun python3 stellar_spectra.py
+python3 get_d4000.py

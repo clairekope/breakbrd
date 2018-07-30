@@ -4,8 +4,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 import glob
 
-inst = False
-dust = False
+inst = True
+dust = True
 
 def get_dn4000(wave,spec):
     interp_spec = interp1d(wave,spec)

@@ -1,4 +1,4 @@
-
+B
 # coding: utf-8
 
 import requests
@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from mpi4py import MPI
 
-inst = False
-dust = False
+inst = True
+dust = True
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -59,15 +59,15 @@ def get(path, params=None):
     return r
 
 def periodic_centering(x, center, boxsixe):
-    # stack two periodic boxes next to each other
-    xx = np.concatenate((x, boxsize+x))
-    if center < boxsize/2:
-        center +=  boxsize
-    crit = np.logical_and(xx >= center-boxsize/2,
-                          xx < center+boxsize/2)
-    assert x.size == xx[crit].size
-    
-    return xx[crit] - center
+    middle = boxsize/2
+    if center > middle:
+        # some of our particles may have wrapped around to the left half 
+        x[x < middle] += boxsize
+    elif center < middle:
+        # some of our particles may have wrapped around to the right half
+        x[x > middle] -= boxsize
+
+    return x - center
 
 
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)

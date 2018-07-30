@@ -56,19 +56,15 @@ def get(path, params=None):
     return r
 
 def periodic_centering(x, center, boxsixe):
-    # stack two periodic boxes next to each other
-    xx = np.concatenate((x, boxsize+x))
-    # if the center is on the left side of the box,
-    # move it over one boxlength to put it near the center of xx
-    if center < boxsize/2:
-        center +=  boxsize
-    crit = np.logical_and(xx >= center-boxsize/2,
-                          xx < center+boxsize/2)
-    #try:
-    assert x.size == xx[crit].size
-    #except AssertionError:
-    #    pdb.set_trace()
-    return xx[crit] - center
+    middle = boxsize/2
+    if center > middle:
+        # some of our particles may have wrapped around to the left half 
+        x[x < middle] += boxsize
+    elif center < middle:
+        # some of our particles may have wrapped around to the right half
+        x[x > middle] -= boxsize
+    
+    return x - center
 
 # MAIN
 
