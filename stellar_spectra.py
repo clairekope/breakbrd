@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 import astropy.units as u
 from mpi4py import MPI
 
-inst = True
-dust = True
+inst = False
+dust = False
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
