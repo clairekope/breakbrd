@@ -15,6 +15,9 @@ offline = False
 if offline:
     import readsubHDF5
 
+do_parent = True
+do_inst_cut = False
+
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
@@ -76,8 +79,12 @@ def periodic_centering(x, center, boxsixe):
 # MAIN
 
 if rank==0:
-    with open("cut4.pkl","rb") as f:
-        subs = pickle.load(f)
+    if not do_parent:
+        with open("cut4.pkl","rb") as f:
+            subs = pickle.load(f)
+    else:
+        with open("cut2.5.pkl","rb") as f:
+            subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
 else:
     subs = {}
@@ -160,7 +167,9 @@ for sub_id in my_subs[good_ids]:
     
     my_all_gas_data[sub_id] = {}
     my_all_gas_data[sub_id]['inner_SFR'] = inner_sfr
+    my_all_gas_data[sub_id]['total_SFR'] = np.sum(sfr)
     my_all_gas_data[sub_id]['inner_gas'] = np.sum(mass[inner_region])
+    my_all_gas_data[sub_id]['total_gas'] = np.sum(mass)
     my_all_gas_data[sub_id]['inner_sfe'] = inner_sfr  / np.sum(mass[inner_dense])
     my_all_gas_data[sub_id]['mid_sfe']   = mid_sfr    / np.sum(mass[mid_dense])
     my_all_gas_data[sub_id]['outer_sfe'] = outer_sfr  / np.sum(mass[outer_dense])
@@ -179,23 +188,25 @@ for sub_id in my_subs[good_ids]:
     ssfr = inner_sfr / np.sum(smass[sr < 2*u.kpc]) 
     
     my_all_gas_data[sub_id]['inner_sSFR'] = ssfr
-    if ssfr > 1e-11/u.yr:
+    if ssfr > 1e-11/u.yr and do_inst_cut:
         my_cut_inst_ssfr[sub_id] = subs[sub_id]
         my_cut_inst_ssfr[sub_id]['inner_inst_sSFR'] = ssfr
 
-cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
+if do_inst_cut:
+    cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
 all_gas_lst = comm.gather(my_all_gas_data, root=0)
 if rank==0:
-    cut_ssfr = {}
-    for dic in cut_ssfr_lst:
-        for k,v in dic.items():
-            cut_ssfr[k] = v
-    with open("cut_inst_ssfr.pkl","wb") as f:
-        pickle.dump(cut_ssfr, f)
+    if do_inst_cut:
+        cut_ssfr = {}
+        for dic in cut_ssfr_lst:
+            for k,v in dic.items():
+                cut_ssfr[k] = v
+        with open("cut_inst_ssfr.pkl","wb") as f:
+            pickle.dump(cut_ssfr, f)
     
     all_gas = {}
     for dic in all_gas_lst:
         for k,v in dic.items():
             all_gas[k] = v
-    with open("cut4_gas_info.pkl","wb") as f:
+    with open("{}_gas_info.pkl".format("parent" if do_parent else "cut4"),"wb") as f:
         pickle.dump(all_gas,f)
