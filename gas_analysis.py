@@ -94,6 +94,7 @@ for sub_id in my_subs[good_ids]:
         print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
         get(url + str(sub_id) + "/cutout.hdf5", cutout)
     sub = get(url+str(sub_id))
+    r_half = subs[sub_id]['half_mass_rad']*u.kpc
 
     try:
         with h5py.File(file) as f:
@@ -119,16 +120,32 @@ for sub_id in my_subs[good_ids]:
     z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
     mass = mass * 1e10 / 0.704 * u.Msun
+    sfr = sfr * u.Msun/u.yr
     
-    tot_sfr = np.sum(sfr[r < 2*u.kpc]) * u.Msun/u.yr # stored in these units
-    inner_dense = np.logical_and(r < 2*u.kpc, dens > 0.13)
+    inner_region = r < 2*u.kpc
+    mid_region   = np.logical_and(r > 2*u.kpc, r < r_half)
+    outer_region = np.logical_and(r > r_half,  r < 2*r_half)
+    far_region   = r > 2*r_half
+    
+    inner_dense = np.logical_and(r < 2*u.kpc,  dens > 0.13)
+    mid_dense   = np.logical_and(mid_region,   dens > 0.13)
+    outer_dense = np.logical_and(outer_region, dens > 0.13)
+    far_dense   = np.logical_and(r > 2*r_half, dens > 0.13)
+    
+    inner_sfr = np.sum(sfr[inner_region])
+    mid_sfr   = np.sum(sfr[mid_region])
+    outer_sfr = np.sum(sfr[outer_region])
+    far_sfr   = np.sum(sfr[far_region])
     
     my_all_gas_data[sub_id] = {}
-    my_all_gas_data[sub_id]['SFR'] = tot_sfr
-    my_all_gas_data[sub_id]['gas'] = np.sum(mass[r < 2*u.kpc])
-    my_all_gas_data[sub_id]['dense_gas'] = np.sum(mass[inner_dense])
-    my_all_gas_data[sub_id]['total_dense_gas'] = np.sum(mass[dens > 0.13])
-
+    my_all_gas_data[sub_id]['inner_SFR'] = inner_sfr
+    my_all_gas_data[sub_id]['inner_gas'] = np.sum(mass[inner_region])
+    my_all_gas_data[sub_id]['inner_sfe'] = inner_sfr  / np.sum(mass[inner_dense])
+    my_all_gas_data[sub_id]['mid_sfe']   = mid_sfr    / np.sum(mass[mid_dense])
+    my_all_gas_data[sub_id]['outer_sfe'] = outer_sfr  / np.sum(mass[outer_dense])
+    my_all_gas_data[sub_id]['far_sfe']   = far_sfr    / np.sum(mass[far_dense])
+    my_all_gas_data[sub_id]['total_sfe'] = np.sum(sfr)/ np.sum(mass[dens > 0.13])
+                               
     sx = scoords[:,0]
     sy = scoords[:,1]
     sz = scoords[:,2]
@@ -138,12 +155,12 @@ for sub_id in my_subs[good_ids]:
     sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
     smass = smass * 1e10 / 0.704 * u.Msun
 
-    ssfr = tot_sfr / np.sum(smass[sr < 2*u.kpc]) 
+    ssfr = inner_sfr / np.sum(smass[sr < 2*u.kpc]) 
     
-    my_all_gas_data[sub_id]['sSFR'] = ssfr
+    my_all_gas_data[sub_id]['inner_sSFR'] = ssfr
     if ssfr > 1e-11/u.yr:
         my_cut_inst_ssfr[sub_id] = subs[sub_id]
-        my_cut_inst_ssfr[sub_id]['inst_sSFR'] = ssfr
+        my_cut_inst_ssfr[sub_id]['inner_inst_sSFR'] = ssfr
 
 cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
 all_gas_lst = comm.gather(my_all_gas_data, root=0)

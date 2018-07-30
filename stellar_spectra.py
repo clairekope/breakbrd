@@ -184,7 +184,7 @@ for sub_id in my_subs[good_ids]:
 
         if inst:
             # Add instantaneous SFR from gas to last bin (i.e., now)
-            sfr[-1] = inst_sfr[sub_id]['SFR'].value
+            sfr[-1] = inst_sfr[sub_id]['inner_SFR'].value
 
         sp.set_tabular_sfh(time_avg, sfr)
         wave, spec = sp.get_spectrum(tage=14.0)

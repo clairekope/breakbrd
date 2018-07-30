@@ -71,7 +71,7 @@ with open("cut_final.pkl","rb") as f:
 sub_ids = [k for k in sample.keys()]
 mstar = np.array([sample[k]['stellar_mass'] for k in sub_ids]) # ensure same order
 mgas = np.empty_like(mstar)
-ssfr = np.array([sample[k]['sSFR_1Gyr'].value for k in sub_ids])
+ssfr = np.array([sample[k]['inner_sSFR_1Gyr'].value for k in sub_ids])
 # half_mass = np.array([sample[k]['half_mass_rad'] for k in sub_ids])
 # half_light = np.empty((4, half_mass.size))
 

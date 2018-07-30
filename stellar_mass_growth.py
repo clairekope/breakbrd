@@ -75,7 +75,7 @@ if rank==0:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
-        with open("cut4_all_gas_info.pkl","rb") as f:
+        with open("cut4_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     subs = {}
@@ -189,7 +189,7 @@ for sub_id in my_subs[good_ids]:
             
             if use_inst:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
-                sfr[-1] = inst_sfr[sub_id]['SFR']
+                sfr[-1] = inst_sfr[sub_id]['inner_SFR']
             
             # unweighted avg b/c time bins are currently equal sized
             # denom is current mass in this radial bin
@@ -201,9 +201,9 @@ for sub_id in my_subs[good_ids]:
             
             if ssfr_1Gyr > lim: #or ssfr_100Myr > lim or ssfr_50Myr > lim:
                 my_cut_ssfr[sub_id] = subs[sub_id]
-                my_cut_ssfr[sub_id]["sSFR_1Gyr"]   = ssfr_1Gyr
-                my_cut_ssfr[sub_id]["sSFR_100Myr"] = ssfr_100Myr
-                my_cut_ssfr[sub_id]["sSFR_50Myr"]  = ssfr_50Myr
+                my_cut_ssfr[sub_id]["inner_sSFR_1Gyr"]   = ssfr_1Gyr
+                my_cut_ssfr[sub_id]["inner_sSFR_100Myr"] = ssfr_100Myr
+                my_cut_ssfr[sub_id]["inner_sSFR_50Myr"]  = ssfr_50Myr
 
         #elif r_bin==2:
             #plt.plot(np.log10(age_progrssn.value), mass_frac, c='plum',
