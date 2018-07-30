@@ -75,7 +75,7 @@ if rank==0:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
-        with open("cut4_all_inst_ssfr.pkl","rb") as f:
+        with open("cut4_all_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     subs = {}
@@ -253,7 +253,7 @@ if rank==0:
     for dic in all_ssfr_lst:
         for k,v in dic.items():
             all_ssfr[k] = v
-    with open("cut4_all_ssfr.pkl","wb") as f:
+    with open("cut4_ssfr.pkl","wb") as f:
         pickle.dump(all_ssfr, f)
         
     cut5 = {}

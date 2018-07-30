@@ -121,13 +121,13 @@ for sub_id in my_subs[good_ids]:
     mass = mass * 1e10 / 0.704 * u.Msun
     
     tot_sfr = np.sum(sfr[r < 2*u.kpc]) * u.Msun/u.yr # stored in these units
-    gas = np.sum(mass[r < 2*u.kpc]) 
     inner_dense = np.logical_and(r < 2*u.kpc, dens > 0.13)
     
     my_all_gas_data[sub_id] = {}
     my_all_gas_data[sub_id]['SFR'] = tot_sfr
-    my_all_gas_data[sub_id]['inner_gas'] = gas
-    my_all_gas_data[sub_id]['inner_dense_gas'] = np.sum(mass[inner_dense])
+    my_all_gas_data[sub_id]['gas'] = np.sum(mass[r < 2*u.kpc])
+    my_all_gas_data[sub_id]['dense_gas'] = np.sum(mass[inner_dense])
+    my_all_gas_data[sub_id]['total_dense_gas'] = np.sum(mass[dens > 0.13])
 
     sx = scoords[:,0]
     sy = scoords[:,1]
@@ -159,5 +159,5 @@ if rank==0:
     for dic in all_gas_lst:
         for k,v in dic.items():
             all_gas[k] = v
-    with open("cut4_all_gas_info.pkl","wb") as f:
+    with open("cut4_gas_info.pkl","wb") as f:
         pickle.dump(all_gas,f)

@@ -1,4 +1,4 @@
-B
+
 # coding: utf-8
 
 import requests
@@ -12,7 +12,7 @@ import astropy.units as u
 from mpi4py import MPI
 
 inst = True
-dust = True
+dust = False
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -92,7 +92,7 @@ if rank==0:
         sample = pickle.load(f)
     sub_list = np.array([k for k in sample.keys()])
     if inst:
-        with open("cut4_all_inst_ssfr.pkl","rb") as f:
+        with open("cut4_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     sample = {}
