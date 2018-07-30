@@ -82,7 +82,7 @@ else:
 subs = comm.bcast(subs,root=0)
 my_subs = scatter_work(sub_list, rank, size)
 my_cut_inst_ssfr = {}
-my_all_inst_ssfr = {}
+my_all_gas_data= {}
 
 url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 cutout = {"gas":
@@ -102,8 +102,8 @@ for sub_id in my_subs[good_ids]:
     try:
         with h5py.File(file) as f:
             coords = f['PartType0']['Coordinates'][:,:]
-            #mass = f['PartType0']['Masses'][:]
-            #dens = f['PartType0']['Density'][:]
+            mass = f['PartType0']['Masses'][:]
+            dens = f['PartType0']['Density'][:]
             #inte = f['PartType0']['InternalEnergy'][:]
             #HI = f['PartType0']['NeutralHydrogenAbundance'][:]
             sfr = f['PartType0']['StarFormationRate'][:]
@@ -121,11 +121,17 @@ for sub_id in my_subs[good_ids]:
     x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc / 0.704
     y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc / 0.704
     z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
-    r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)    
-    tot_sfr = np.sum(sfr[r < 2*u.kpc]) * u.Msun/u.yr 
+    r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
+    mass = mass * 1e10 / 0.704 * u.Msun
     
-    my_all_inst_ssfr[sub_id] = {}
-    my_all_inst_ssfr[sub_id]['SFR'] = tot_sfr
+    tot_sfr = np.sum(sfr[r < 2*u.kpc]) * u.Msun/u.yr # stored in these units
+    gas = np.sum(mass[r < 2*u.kpc]) 
+    inner_dense = np.logical_and(r < 2*u.kpc, dens > 0.13)
+    
+    my_all_gas_data[sub_id] = {}
+    my_all_gas_data[sub_id]['SFR'] = tot_sfr
+    my_all_gas_data[sub_id]['inner_gas'] = gas
+    my_all_gas_data[sub_id]['inner_dense_gas'] = np.sum(mass[inner_dense])
 
     sx = scoords[:,0]
     sy = scoords[:,1]
@@ -138,13 +144,13 @@ for sub_id in my_subs[good_ids]:
 
     ssfr = tot_sfr / np.sum(smass[sr < 2*u.kpc]) 
     
-    my_all_inst_ssfr[sub_id]['sSFR'] = ssfr
+    my_all_gas_data[sub_id]['sSFR'] = ssfr
     if ssfr > 1e-11/u.yr:
         my_cut_inst_ssfr[sub_id] = subs[sub_id]
         my_cut_inst_ssfr[sub_id]['inst_sSFR'] = ssfr
 
 cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
-all_ssfr_lst = comm.gather(my_all_inst_ssfr, root=0)
+all_gas_lst = comm.gather(my_all_gas_data, root=0)
 if rank==0:
     cut_ssfr = {}
     for dic in cut_ssfr_lst:
@@ -153,9 +159,9 @@ if rank==0:
     with open("cut_inst_ssfr.pkl","wb") as f:
         pickle.dump(cut_ssfr, f)
     
-    all_ssfr = {}
-    for dic in all_ssfr_lst:
+    all_gas = {}
+    for dic in all_gas_lst:
         for k,v in dic.items():
-            all_ssfr[k] = v
-    with open("cut4_all_inst_ssfr.pkl","wb") as f:
-        pickle.dump(all_ssfr,f)
+            all_gas[k] = v
+    with open("cut4_all_gas_info.pkl","wb") as f:
+        pickle.dump(all_gas,f)
