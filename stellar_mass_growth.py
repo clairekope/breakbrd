@@ -58,15 +58,19 @@ def get(path, params=None):
     return r
 
 def periodic_centering(x, center, boxsixe):
-    middle = boxsize/2
-    if center > middle:
+    quarter = boxsize/4
+    upper_qrt = boxsize-quarter
+    lower_qrt = quarter
+    
+    if center > upper_qrt:
         # some of our particles may have wrapped around to the left half 
-        x[x < middle] += boxsize
-    elif center < middle:
+        x[x < lower_qrt] += boxsize
+    elif center < lower_qrt:
         # some of our particles may have wrapped around to the right half
-        x[x > middle] -= boxsize
+        x[x > upper_qrt] -= boxsize
     
     return x - center
+
 
 # MAIN
 

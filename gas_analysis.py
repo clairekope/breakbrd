@@ -9,7 +9,11 @@ import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from astropy.cosmology import WMAP9
 from mpi4py import MPI
-import pdb
+#import readsubfHDF5
+
+offline = False
+if offline:
+    import readsubHDF5
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -56,13 +60,16 @@ def get(path, params=None):
     return r
 
 def periodic_centering(x, center, boxsixe):
-    middle = boxsize/2
-    if center > middle:
+    quarter = boxsize/4
+    upper_qrt = boxsize-quarter
+    lower_qrt = quarter
+    
+    if center > upper_qrt:
         # some of our particles may have wrapped around to the left half 
-        x[x < middle] += boxsize
-    elif center < middle:
+        x[x < lower_qrt] += boxsize
+    elif center < lower_qrt:
         # some of our particles may have wrapped around to the right half
-        x[x > middle] -= boxsize
+        x[x > upper_qrt] -= boxsize
     
     return x - center
 
@@ -80,9 +87,17 @@ my_subs = scatter_work(sub_list, rank, size)
 my_cut_inst_ssfr = {}
 my_all_gas_data= {}
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
-cutout = {"gas":
+if not offline:
+    url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+    cutout = {"gas":
         "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
+else:
+    treebase = "/mnt/xfs1/home/sgenel/myceph/PUBLIC/Illustris-1/"
+    if rank==0:
+        cat = readsubfHDF5.subfind_catalog(treebase, 135, keysel=['SubhaloPos'])
+    else:
+        cat = None
+    cat = comm.bcast(cat, root=0)
 
 boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
 
@@ -90,10 +105,16 @@ good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
     file = "gas_cutouts/cutout_{}.hdf5".format(sub_id)
-    if not os.path.isfile(file):
-        print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
-        get(url + str(sub_id) + "/cutout.hdf5", cutout)
-    sub = get(url+str(sub_id))
+    if not offline:
+        if not os.path.isfile(file):
+            print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
+            get(url + str(sub_id) + "/cutout.hdf5", cutout)
+        sub = get(url+str(sub_id))
+    else:
+        pos = cat.SubhaloPos[sub_id,3]
+        sub = {'pos_x':pos[0],
+               'pos_y':pos[1],
+               'pos_z':pos[2]}
     r_half = subs[sub_id]['half_mass_rad']*u.kpc
 
     try:
