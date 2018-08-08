@@ -75,11 +75,13 @@ def periodic_centering(x, center, boxsixe):
 # MAIN
 
 if rank==0:
-    with open("cut4.pkl","rb") as f:
+    #with open("cut4.pkl","rb") as f:
+    with open("cut2.5.pkl","rb") as f:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
-        with open("cut4_gas_info.pkl","rb") as f:
+        #with open("cut4_gas_info.pkl","rb") as f:
+        with open("parent_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     subs = {}
@@ -150,7 +152,10 @@ for sub_id in my_subs[good_ids]:
     age = timenow-form_time
 
     bins = [0, 2, 1*r_half, 2*r_half] * u.kpc
-    binner = np.digitize(r, bins) # index len(bins) is overflow
+    try:
+        binner = np.digitize(r, bins) # index len(bins) is overflow
+    except ValueError:
+        continue
 
     time_bins = np.arange(0,14.01,0.01) # 0 to 14 Gyr in 10 Myr bins
     dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
@@ -243,26 +248,27 @@ if rank==0:
     for dic in cut_radii_lst:
         for k, v in dic.items():
             cut_radii[k] = v            
-    with open("cut_radii.pkl", "wb") as f:
-        pickle.dump(cut_radii, f)
+    #with open("cut_radii.pkl", "wb") as f:
+    #    pickle.dump(cut_radii, f)
 
     cut_ssfr = {}
     for dic in cut_ssfr_lst:
         for k,v in dic.items():
             cut_ssfr[k] = v
-    with open("cut_ssfr.pkl","wb") as f:
-        pickle.dump(cut_ssfr, f)
+    #with open("cut_ssfr.pkl","wb") as f:
+    #    pickle.dump(cut_ssfr, f)
 
     all_ssfr = {}
     for dic in all_ssfr_lst:
         for k,v in dic.items():
             all_ssfr[k] = v
-    with open("cut4_ssfr.pkl","wb") as f:
-        pickle.dump(all_ssfr, f)
+    #with open("cut4_ssfr.pkl","wb") as f:
+    #    pickle.dump(all_ssfr, f)
         
     cut5 = {}
     for k in cut_radii.keys():
         if k in cut_ssfr:
             cut5[k] = cut_ssfr[k]
-    with open("cut5.pkl", "wb") as f:
-        pickle.dump(cut5, f)
+    #with open("cut5.pkl", "wb") as f:
+    #    pickle.dump(cut5, f)
+    print(len(cut_radii), len(cut_ssfr), len(cut5))
