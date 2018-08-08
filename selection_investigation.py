@@ -54,7 +54,7 @@ def periodic_centering(x, center, boxsixe):
 #     pickle.dump(cut5,f)
 
 #with open("cut5.pkl","rb") as f:
-with open("cut_final.pkl","rb") as f:
+with open("cut_final_dusty.pkl","rb") as f:
     sample = pickle.load(f)
 
 # with h5py.File('nonparametric_morphologies.hdf5') as f:
@@ -94,7 +94,7 @@ plt.hist([log_mstar, log_mgas], 20, range=(6.2,11.91), histtype='step', label=["
 plt.xlabel("$\mathrm{\log_{10}\ M\ [M_\odot]}$")
 #plt.title("Subhalos with $\mathrm{\log_{10}(sSFR) > -11\ yr^{-1}}$")
 #plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
-plt.title("Subhalos with d4000 < 1.4")
+plt.title("Subhalos with Dusty d4000 < 1.4")
 plt.legend(loc="upper left")
 plt.savefig("final/star_+_gas_mass_dist.png"); plt.clf()
 
@@ -102,12 +102,14 @@ plt.scatter(log_mstar, log_mgas, marker='.')
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("$\mathrm{\log_{10}\ M_{gas}\ [M_\odot]}$")
 #plt.title("Subhalos with $\mathrm{\log_{10}(sSFR) > -11\ yr^{-1}}$")
-plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+plt.title("Subhalos with Dusty d4000 < 1.4")
 plt.savefig("final/star_v_gas_mass.png"); plt.clf()
 
 plt.hist(np.log10(ssfr),15)
 plt.xlabel("$\mathrm{\log_{10}\ sSFR(1\ Gyr)\ [M_\odot]}$")
-plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+plt.title("Subhalos with Dusty d4000 < 1.4")
 plt.savefig("final/ssfr_dist.png"); plt.clf()
 
 # plt.scatter(log_mstar, half_mass, marker='.', label='Half Mass')
@@ -282,13 +284,15 @@ for i, s in enumerate(sub_ids):
 plt.scatter(log_mstar, np.log10(inner_mass))
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("$\mathrm{\log_{10}\ M_*(r<2\ kpc)\ [M_\odot]}$")
-plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+plt.title("Subhalos with Dusty d4000 < 1.4")
 plt.savefig("final/ssfr_mstar_scatter.png"); plt.clf()
 
 plt.scatter(log_mstar, inner_mass/mstar)
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("Fraction of $M_*$ with $r<2$ kpc")
-plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr^{-1}}$")
+plt.title("Subhalos with Dusty d4000 < 1.4")
 plt.savefig("final/ssfr_mstar_ratio.png"); plt.clf()
 
 
@@ -308,7 +312,8 @@ plt.bar(bins2[-1], bavg[-1], width=width[-1], align="edge",
         fill=False, zorder=-1, hatch='/')
 plt.xlabel("$r/R_{M_{1/2}}$")
 plt.ylabel("Current Stellar Mass Fraction")
-plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr\^{-1}}$")
+#plt.title("Growth-Inverted Subhalos with $\mathrm{\log_{10}\ sSFR > -11\ yr\^{-1}}$")
+plt.title("Subhalos with Dusty d4000 < 1.4")
 plt.legend()
 plt.savefig("final/stellar_mass_frac.png"); plt.clf()
 
