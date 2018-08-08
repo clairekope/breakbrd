@@ -13,9 +13,9 @@ from mpi4py import MPI
 
 offline = False
 if offline:
-    import readsubHDF5
+    import readsubfHDF5
 
-do_parent = True
+do_parent = False
 do_inst_cut = False
 
 comm = MPI.COMM_WORLD
@@ -96,8 +96,10 @@ my_all_gas_data= {}
 
 if not offline:
     url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
-    cutout = {"gas":
+    gas_cutout = {"gas":
         "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
+    star_cutout = {"star":
+        "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 else:
     treebase = "/mnt/xfs1/home/sgenel/myceph/PUBLIC/Illustris-1/"
     if rank==0:
@@ -107,15 +109,20 @@ else:
     cat = comm.bcast(cat, root=0)
 
 boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
+dthresh = 6.4866e-4 # 0.13 cm^-3 in code units
 
 good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
-    file = "gas_cutouts/cutout_{}.hdf5".format(sub_id)
+    gas_file = "gas_cutouts/cutout_{}.hdf5".format(sub_id)
+    star_file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     if not offline:
-        if not os.path.isfile(file):
-            print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
-            get(url + str(sub_id) + "/cutout.hdf5", cutout)
+        if not os.path.isfile(gas_file):
+            print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
+            get(url + str(sub_id) + "/cutout.hdf5", gas_cutout)
+        if not os.path.isfile(star_file):
+            print("Rank", rank, "downloading star", sub_id); sys.stdout.flush()
+            get(url + str(sub_id) + "/cutout.hdf5", star_cutout)
         sub = get(url+str(sub_id))
     else:
         pos = cat.SubhaloPos[sub_id,3]
@@ -125,7 +132,7 @@ for sub_id in my_subs[good_ids]:
     r_half = subs[sub_id]['half_mass_rad']*u.kpc
 
     try:
-        with h5py.File(file) as f:
+        with h5py.File(gas_file) as f:
             coords = f['PartType0']['Coordinates'][:,:]
             mass = f['PartType0']['Masses'][:]
             dens = f['PartType0']['Density'][:]
@@ -135,10 +142,14 @@ for sub_id in my_subs[good_ids]:
     except KeyError:
         print(sub_id); sys.stdout.flush()
         continue
-    with h5py.File("stellar_cutouts/cutout_{}.hdf5".format(sub_id)) as f:
-        scoords = f['PartType4']['Coordinates'][:]
-        smass = f['PartType4']['Masses'][:]
-        a = f['PartType4']['GFM_StellarFormationTime']
+    try:
+        with h5py.File(star_file) as f:
+            scoords = f['PartType4']['Coordinates'][:]
+            smass = f['PartType4']['Masses'][:]
+            a = f['PartType4']['GFM_StellarFormationTime']
+    except KeyError:
+        print(sub_id, "no stars"); sys.stdout.flush()
+        continue
 
     x = coords[:,0]
     y = coords[:,1]
@@ -155,10 +166,10 @@ for sub_id in my_subs[good_ids]:
     outer_region = np.logical_and(r > r_half,  r < 2*r_half)
     far_region   = r > 2*r_half
     
-    inner_dense = np.logical_and(r < 2*u.kpc,  dens > 0.13)
-    mid_dense   = np.logical_and(mid_region,   dens > 0.13)
-    outer_dense = np.logical_and(outer_region, dens > 0.13)
-    far_dense   = np.logical_and(r > 2*r_half, dens > 0.13)
+    inner_dense = np.logical_and(r < 2*u.kpc,  dens > dthresh)
+    mid_dense   = np.logical_and(mid_region,   dens > dthresh)
+    outer_dense = np.logical_and(outer_region, dens > dthresh)
+    far_dense   = np.logical_and(r > 2*r_half, dens > dthresh)
     
     inner_sfr = np.sum(sfr[inner_region])
     mid_sfr   = np.sum(sfr[mid_region])
@@ -174,7 +185,7 @@ for sub_id in my_subs[good_ids]:
     my_all_gas_data[sub_id]['mid_sfe']   = mid_sfr    / np.sum(mass[mid_dense])
     my_all_gas_data[sub_id]['outer_sfe'] = outer_sfr  / np.sum(mass[outer_dense])
     my_all_gas_data[sub_id]['far_sfe']   = far_sfr    / np.sum(mass[far_dense])
-    my_all_gas_data[sub_id]['total_sfe'] = np.sum(sfr)/ np.sum(mass[dens > 0.13])
+    my_all_gas_data[sub_id]['total_sfe'] = np.sum(sfr)/ np.sum(mass[dens > dthresh])
                                
     sx = scoords[:,0]
     sy = scoords[:,1]
