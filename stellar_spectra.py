@@ -12,7 +12,7 @@ import astropy.units as u
 from mpi4py import MPI
 
 inst = True
-dust = False
+dust = True
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
@@ -91,11 +91,11 @@ sp.params['imf_type'] = 1 # Chabrier (2003)
 
 
 if rank==0:
-    with open("cut4.pkl","rb") as f:
+    with open("cut3.pkl","rb") as f:
         sample = pickle.load(f)
     sub_list = np.array([k for k in sample.keys()])
     if inst:
-        with open("cut4_gas_info.pkl","rb") as f:
+        with open("cut3_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     sample = {}

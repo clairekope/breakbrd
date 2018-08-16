@@ -15,7 +15,7 @@ offline = False
 if offline:
     import readsubfHDF5
 
-do_parent = False
+do_parent = True
 do_inst_cut = False
 
 comm = MPI.COMM_WORLD
@@ -80,7 +80,7 @@ def periodic_centering(x, center, boxsixe):
 
 if rank==0:
     if not do_parent:
-        with open("cut4.pkl","rb") as f:
+        with open("cut3.pkl","rb") as f:
             subs = pickle.load(f)
     else:
         with open("cut2.5.pkl","rb") as f:
@@ -219,5 +219,5 @@ if rank==0:
     for dic in all_gas_lst:
         for k,v in dic.items():
             all_gas[k] = v
-    with open("{}_gas_info.pkl".format("parent" if do_parent else "cut4"),"wb") as f:
+    with open("{}_gas_info.pkl".format("parent" if do_parent else "cut3"),"wb") as f:
         pickle.dump(all_gas,f)

@@ -164,15 +164,38 @@ else:
     
 
 # cut 2.5: pass the M_r cut but less than 1e12 Msun in stars
+#if rank==0:
+#    print("copying...")
+#    cut2_new = deepcopy(cut2)
+#    print("copy done")
+#    for k in cut2.keys():
+#        if cut2_new[k]['stellar_mass'] > 1e12:
+#            cut2_new.pop(k)
+#    with open("cut2.5.pkl", "wb") as f:
+#        pickle.dump(cut2_new, f)
+
+
 if rank==0:
-    print("copying...")
-    cut2_new = deepcopy(cut2)
-    print("copy done")
-    for k in cut2.keys():
-        if cut2_new[k]['stellar_mass'] > 1e12:
-            cut2_new.pop(k)
-    with open("cut2.5.pkl", "wb") as f:
+    #print("Galaxies from g-r cut:", len(cut3))
+
+    cut2_new = {}
+
+    for sub_id in cut2.keys():
+        if cut2[sub_id]['stellar_mass'] < 1e12 and cut2[sub_id]['half_mass_rad'] > 2:
+            cut2_new[sub_id] = cut2[sub_id]
+            #cut2_new[sub_id]['stellar_mass'] = cut2[sub
+
+    with open("cut2.5.pkl","wb") as f:
         pickle.dump(cut2_new, f)
+else:
+    cut2_new = None
+
+#cut2_new = comm.bcast(cut2_new, root=0)
+if rank == 0:
+    print("Galaxies from cleaning cut:",len(cut2_new))
+    cut2_subhalos = np.array([k for k in cut2_new.keys()])
+else:
+    cut2_subhalos = None    
 
         
 if not os.path.isfile("cut3.pkl"):
@@ -247,17 +270,5 @@ else: # cut3 dict already generated
         cut3 = None
 
 # Make cut 4, a polish of cut 3
-cut3 = comm.bcast(cut3, root=0)
-if rank==0:
-    print("Galaxies from g-r cut:", len(cut3))
+#cut3 = comm.bcast(cut3, root=0)
 
-    cut4 = {}
-
-    for sub_id in cut3.keys():
-        if cut3[sub_id]['stellar_mass'] < 1e12 and cut3[sub_id]['half_mass_rad'] > 2:
-            cut4[sub_id] = cut3[sub_id]
-            cut4[sub_id]['stellar_mass'] = star_mass * 1e10 / 0.704 # Msun
-
-    with open("cut4.pkl","wb") as f:
-        pickle.dump(cut4, f)
-    
