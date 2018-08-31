@@ -1,5 +1,10 @@
-
-# coding: utf-8
+########################################################################
+#
+# Creates a set of plots looking at the properties of the dictionary
+# stored as "sample", including mass growth histories for all keys in
+# "sample".
+#
+########################################################################
 
 import pickle
 import requests
@@ -8,36 +13,7 @@ import numpy as np
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from astropy import units as u
-
-def get(path, params=None):
-    # make HTTP GET request to path
-    headers = {"api-key":"5309619565f744f9248320a886c59bec"}
-    r = requests.get(path, params=params, headers=headers)
-
-    # raise exception if response code is not HTTP SUCCESS (200)
-    r.raise_for_status()
-
-    if r.headers['content-type'] == 'application/json':
-        return r.json() # parse json responses automatically
-
-    if 'content-disposition' in r.headers:
-        filename = r.headers['content-disposition'].split("filename=")[1]
-        with open(filename, 'wb') as f:
-            f.write(r.content)
-        return filename # return the filename string
-
-    return r
-
-def periodic_centering(x, center, boxsixe):
-    middle = boxsize/2
-    if center > middle:
-        # some of our particles may have wrapped around to the left half 
-        x[x < middle] += boxsize
-    elif center < middle:
-        # some of our particles may have wrapped around to the right half
-        x[x > middle] -= boxsize
-    
-    return x - center
+from utilities import *
 
 # with open("cut_sample.pkl","rb") as f:
 #     sample = pickle.load(f)

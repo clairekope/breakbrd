@@ -1,5 +1,4 @@
 import pickle
-import requests
 import h5py
 import sys
 import os
@@ -9,6 +8,7 @@ import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from astropy.cosmology import WMAP9
 from mpi4py import MPI
+from utilities import *
 #import readsubfHDF5
 
 offline = False
@@ -21,62 +21,6 @@ do_inst_cut = False
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-
-def scatter_work(array, mpi_rank, mpi_size, root=0):
-    if mpi_rank == root:
-        scatter_total = array.size
-        mod = scatter_total % mpi_size
-        if mod != 0:
-            print("Padding array for scattering...")
-            pad = -1 * np.ones(mpi_size - mod, dtype='i')
-            array = np.concatenate((array, pad))
-            scatter_total += mpi_size - mod
-            assert scatter_total % mpi_size == 0
-            assert scatter_total == array.size
-    else:
-        scatter_total = None
-        #array = None
-
-    scatter_total = comm.bcast(scatter_total, root=root)
-    subset = np.empty(scatter_total//mpi_size, dtype='i')
-    comm.Scatter(array, subset, root=root)
-
-    return subset
-
-def get(path, params=None):
-    # make HTTP GET request to path
-    headers = {"api-key":"5309619565f744f9248320a886c59bec"}
-    r = requests.get(path, params=params, headers=headers)
-
-    # raise exception if response code is not HTTP SUCCESS (200)
-    r.raise_for_status()
-
-    if r.headers['content-type'] == 'application/json':
-        return r.json() # parse json responses automatically
-
-    if 'content-disposition' in r.headers:
-        filename = "gas_cutouts/" + r.headers['content-disposition'].split("filename=")[1]
-        with open(filename, 'wb') as f:
-            f.write(r.content)
-        return filename # return the filename string
-
-    return r
-
-def periodic_centering(x, center, boxsixe):
-    quarter = boxsize/4
-    upper_qrt = boxsize-quarter
-    lower_qrt = quarter
-    
-    if center > upper_qrt:
-        # some of our particles may have wrapped around to the left half 
-        x[x < lower_qrt] += boxsize
-    elif center < lower_qrt:
-        # some of our particles may have wrapped around to the right half
-        x[x > upper_qrt] -= boxsize
-    
-    return x - center
-
-# MAIN
 
 if rank==0:
     if not do_parent:

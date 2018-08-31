@@ -1,9 +1,7 @@
 from __future__ import print_function, division
 import os
 import sys
-import requests
 import pickle
-import warnings
 import numpy as np
 from astropy.io import fits
 from astropy import units as u
@@ -11,52 +9,11 @@ from astropy import constants as c
 from photutils import CircularAnnulus, aperture_photometry
 from mpi4py import MPI
 from copy import deepcopy
+from utilities import *
 
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
-
-def scatter_work(array, mpi_rank, mpi_size, root=0):
-    """ array should only exist on root & be None elsewhere"""
-    if mpi_rank == root:
-        scatter_total = array.size
-        mod = scatter_total % mpi_size
-        if mod != 0:
-            print("Padding array for scattering...")
-            pad = -1 * np.ones(mpi_size - mod, dtype='i')
-            array = np.concatenate((array, pad))
-            scatter_total += mpi_size - mod
-            assert scatter_total % mpi_size == 0
-            assert scatter_total == array.size
-    else:
-        scatter_total = None
-        #array = None
-    scatter_total = comm.bcast(scatter_total, root=root)
-    subset = np.empty(scatter_total//mpi_size, dtype='i')
-    comm.Scatter(array, subset, root=root)    
-
-    return subset
-
-headers = {"api-key":"5309619565f744f9248320a886c59bec"}
-
-def get(path, params=None):
-    # make HTTP GET request to path
-    r = requests.get(path, params=params, headers=headers)
-
-    # raise exception if response code is not HTTP SUCCESS (200)
-    r.raise_for_status()
-
-    if r.headers['content-type'] == 'application/json':
-        return r.json() # parse json responses automatically
-       
-    # for binary data (FITS or HDF5)
-    if 'content-disposition' in r.headers:
-        filename = r.headers['content-disposition'].split("filename=")[1]
-        with open(filename, 'wb') as f:
-            f.write(r.content)
-        return filename # return the filename string
-
-    return r
 
 snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 
