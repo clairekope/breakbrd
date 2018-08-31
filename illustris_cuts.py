@@ -1,3 +1,5 @@
+
+
 from __future__ import print_function, division
 import os
 import sys
@@ -17,11 +19,13 @@ size = comm.Get_size()
 
 snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 
+
+#
+# How many galaxies total?
+# With stellar mocks?
+#
 if rank == 0:
 
-    #
-    # How many galaxies total?
-    #
     total = get(snap_url)
     print("Total subhalos:",total['count'])
 
@@ -41,11 +45,11 @@ if rank == 0:
     scatter_total = cut1['count']
     print("Galaxies from mass cut:", cut1['count'])
 
-if not os.path.isfile("cut2.pkl"):
 
-    #
-    # Cut on $M_R < -19$
-    #
+#
+# Cut on $M_R < -19$
+#
+if not os.path.isfile("cut2_M_r.pkl"):
    
     if rank == 0:
         # Re-get `cut1` with all desired subhalos so I don't have to paginate
@@ -56,9 +60,9 @@ if not os.path.isfile("cut2.pkl"):
 
     halo_subset = scatter_work(subhalo_ids, rank, size)
     
-    # will gather my_cut2 into cut2
-    my_cut2 = {}
-    #cut2 = {}
+    # will gather my_cut2_M_r into cut2_M_r
+    my_cut2_M_r = {}
+    #cut2_M_r = {}
     
     # ignore padding added for scattering
     good_ids = np.where(halo_subset > -1)[0]
@@ -83,91 +87,81 @@ if not os.path.isfile("cut2.pkl"):
         abs_mag_r = np.array(fits.getdata(file, ext=13)[4][13:21:2])
         if (abs_mag_r < -19).any():
             subhalo = get(snap_url + str(sub_id))
-            my_cut2[sub_id] = {"M_r":abs_mag_r,
+            my_cut2_M_r[sub_id] = {"M_r":abs_mag_r,
                                "view":np.argmin(abs_mag_r),
                                "half_mass_rad":subhalo["halfmassrad_stars"]/0.704, # kpc/h to kpc
                                "stellar_mass":subhalo['mass_stars']*1e10/0.704} 
-            #cut2[sub_id] = abs_mag_r
+            #cut2_M_r[sub_id] = abs_mag_r
             
         else:
             # delete subhalos that fail cut
             os.remove(file)
 
-    cut2_lst = comm.gather(my_cut2, root=0)
+    cut2_M_r_lst = comm.gather(my_cut2_M_r, root=0)
     if rank==0:
-        cut2 = {}
-        for dic in cut2_lst:
+        cut2_M_r = {}
+        for dic in cut2_M_r_lst:
             for k, v in dic.items():
-                cut2[k] = v
-        with open("cut2.pkl", "wb") as f:
-            pickle.dump(cut2, f)
+                cut2_M_r[k] = v
+        with open("cut2_M_r.pkl", "wb") as f:
+            pickle.dump(cut2_M_r, f)
     else:
-        cut2 = None
-else: # cut2 dict already generated
+        cut2_M_r = None
+else: # cut2_M_r dict already generated
     if rank == 0:
-        with open("cut2.pkl","rb") as f:
-            cut2 = pickle.load(f)
-        print("cut2.pkl exists")
+        with open("cut2_M_r.pkl","rb") as f:
+            cut2_M_r = pickle.load(f)
+      print("cut2_M_r.pkl exists")
     else:
-        cut2 = None
+        cut2_M_r = None
 
 # broadcast dict (either created or read in)
-cut2 = comm.bcast(cut2, root=0)
+cut2_M_r = comm.bcast(cut2_M_r, root=0)
 if rank == 0:
-    print("Galaxies from M_r cut:",len(cut2))
-    cut2_subhalos = np.array([k for k in cut2.keys()])
+    print("Galaxies from M_r cut:",len(cut2_M_r))
+    cut2_M_r_subhalos = np.array([k for k in cut2_M_r.keys()])
 else:
-    cut2_subhalos = None
+    cut2_M_r_subhalos = None
+    
     
 
-# cut 2.5: pass the M_r cut but less than 1e12 Msun in stars
-#if rank==0:
-#    print("copying...")
-#    cut2_new = deepcopy(cut2)
-#    print("copy done")
-#    for k in cut2.keys():
-#        if cut2_new[k]['stellar_mass'] > 1e12:
-#            cut2_new.pop(k)
-#    with open("cut2.5.pkl", "wb") as f:
-#        pickle.dump(cut2_new, f)
-
-
+# 
+# Clean up M_r for parent sample
+#
 if rank==0:
-    #print("Galaxies from g-r cut:", len(cut3))
 
-    cut2_new = {}
+    cut2_M_r_new = {}
 
-    for sub_id in cut2.keys():
-        if cut2[sub_id]['stellar_mass'] < 1e12 and cut2[sub_id]['half_mass_rad'] > 2:
-            cut2_new[sub_id] = cut2[sub_id]
-            #cut2_new[sub_id]['stellar_mass'] = cut2[sub
+    for sub_id in cut2_M_r.keys():
+        if cut2_M_r[sub_id]['stellar_mass'] < 1e12 and cut2_M_r[sub_id]['half_mass_rad'] > 2:
+            cut2_M_r_new[sub_id] = cut2_M_r[sub_id]
 
-    with open("cut2.5.pkl","wb") as f:
-        pickle.dump(cut2_new, f)
+    with open("parent.pkl","wb") as f:
+        pickle.dump(cut2_M_r_new, f)
 else:
-    cut2_new = None
+    cut2_M_r_new = None
 
-#cut2_new = comm.bcast(cut2_new, root=0)
+#cut2_M_r_new = comm.bcast(cut2_M_r_new, root=0)
 if rank == 0:
-    print("Galaxies from cleaning cut:",len(cut2_new))
-    cut2_subhalos = np.array([k for k in cut2_new.keys()])
+    print("Galaxies from cleaning cut:",len(cut2_M_r_new))
+    cut2_M_r_subhalos = np.array([k for k in cut2_M_r_new.keys()])
 else:
-    cut2_subhalos = None    
+    cut2_M_r_subhalos = None    
 
-        
-if not os.path.isfile("cut3.pkl"):
-    #
-    # Cut on g-r in disk
-    #
 
-    halo_subset2 = scatter_work(cut2_subhalos, rank, size)
+#
+# Cut on g-r in disk
+#
+if not os.path.isfile("cut3_g-r.pkl"):
+
+    halo_subset2 = scatter_work(cut2_M_r_subhalos, rank, size)
     good_ids = np.where(halo_subset2 > -1)
 
-    my_cut3 = {}
+    my_cut3_gr = {}
 
     for sub_id in halo_subset2[good_ids]:
         file = "illustris_fits/broadband_{}.fits".format(sub_id)
-        exten = 14 + cut2[sub_id]['view']
+        exten = 14 + cut2_M_r[sub_id]['view']
         
         # Prepare broadband images for magnitude calculation
         unit = u.Unit(fits.getheader(file, ext=exten)['IMUNIT']) # spectral flux density
@@ -175,7 +169,7 @@ if not os.path.isfile("cut3.pkl"):
         npix = fits.getheader(file, ext=exten)['NAXIS1'] # pixels per dim (square image)
         r_to_nu = ((6201.4 * u.Angstrom).to(u.m))**2 / c.c # from per-lambda to per-nu
         g_to_nu = ((4724.1 * u.Angstrom).to(u.m))**2 / c.c
-        R_half = cut2[sub_id]['half_mass_rad']*u.kpc
+        R_half = cut2_M_r[sub_id]['half_mass_rad']*u.kpc
         pix_size = 10*R_half/256 # FOV is 10 stellar half mass radii
         solid_ang = (pix_size)**2 / (10*u.pc)**2 # place object at 10 pc for abs mag
         solid_ang = solid_ang.to(u.sr, equivalencies=u.dimensionless_angles())
@@ -201,31 +195,29 @@ if not os.path.isfile("cut3.pkl"):
         r_mag = -2.5*np.log10(r_tot_flux/f_zero)
         
         if g_mag - r_mag > 0.655:
-            my_cut3[sub_id] = {'g-r':g_mag-r_mag, 
-                               'view':cut2[sub_id]['view'],
-                               'half_mass_rad':cut2[sub_id]['half_mass_rad'],
-                               'M_r':cut2[sub_id]['M_r'],
-                               'stellar_mass':cut2[sub_id]['stellar_mass']}
+            my_cut3_gr[sub_id] = {'g-r':g_mag-r_mag, 
+                               'view':cut2_M_r[sub_id]['view'],
+                               'half_mass_rad':cut2_M_r[sub_id]['half_mass_rad'],
+                               'M_r':cut2_M_r[sub_id]['M_r'],
+                               'stellar_mass':cut2_M_r[sub_id]['stellar_mass']}
 
-    cut3_lst = comm.gather(my_cut3, root=0)
+    cut3_gr_lst = comm.gather(my_cut3_gr, root=0)
     if rank==0:
-        cut3 = {}
-        for dic in cut3_lst:
+        cut3_gr = {}
+        for dic in cut3_gr_lst:
             for k, v in dic.items():
-                cut3[k] = v
+                cut3_gr[k] = v
             
-        with open("cut3.pkl", "wb") as f:
-            pickle.dump(cut3, f)
+        with open("cut3_g-r.pkl", "wb") as f:
+            pickle.dump(cut3_gr, f)
     else:
-        cut3 = None
-else: # cut3 dict already generated                                                                
+        cut3_gr = None
+else: # cut3_gr dict already generated                                                                
     if rank == 0:
-        with open("cut3.pkl","rb") as f:
+        with open("cut3_g-r.pkl","rb") as f:
             cut3 = pickle.load(f)
-        print("cut3.pkl exists")
+        print("cut3_g-r.pkl exists")
     else:
-        cut3 = None
+        cut3_gr = None
 
-# Make cut 4, a polish of cut 3
-#cut3 = comm.bcast(cut3, root=0)
 

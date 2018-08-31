@@ -24,10 +24,10 @@ size = comm.Get_size()
 
 if rank==0:
     if not do_parent:
-        with open("cut3.pkl","rb") as f:
+        with open("cut3_g-r.pkl","rb") as f:
             subs = pickle.load(f)
     else:
-        with open("cut2.5.pkl","rb") as f:
+        with open("parent.pkl","rb") as f:
             subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
 else:
@@ -163,5 +163,5 @@ if rank==0:
     for dic in all_gas_lst:
         for k,v in dic.items():
             all_gas[k] = v
-    with open("{}_gas_info.pkl".format("parent" if do_parent else "cut3"),"wb") as f:
+    with open("{}_gas_info.pkl".format("parent" if do_parent else "cut3_g-r"),"wb") as f:
         pickle.dump(all_gas,f)

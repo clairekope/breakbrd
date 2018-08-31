@@ -36,11 +36,11 @@ sp.params['imf_type'] = 1 # Chabrier (2003)
 
 
 if rank==0:
-    with open("cut3.pkl","rb") as f:
+    with open("cut3_g-r.pkl","rb") as f:
         sample = pickle.load(f)
     sub_list = np.array([k for k in sample.keys()])
     if inst:
-        with open("cut3_gas_info.pkl","rb") as f:
+        with open("cut3_g-r_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     sample = {}

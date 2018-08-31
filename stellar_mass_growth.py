@@ -17,11 +17,11 @@ size = comm.Get_size()
 use_inst = True # include instantaneous SFR
 
 if rank==0:
-    with open("cut3.pkl","rb") as f:
+    with open("cut3_g-r.pkl","rb") as f:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
-        with open("cut3_gas_info.pkl","rb") as f:
+        with open("cut3_g-r_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 else:
     subs = {}
@@ -199,7 +199,7 @@ if rank==0:
     for dic in all_ssfr_lst:
         for k,v in dic.items():
             all_ssfr[k] = v
-    with open("cut3_ssfr.pkl","wb") as f:
+    with open("cut3_g-r_ssfr.pkl","wb") as f:
         pickle.dump(all_ssfr, f)
         
     cut_u = {}

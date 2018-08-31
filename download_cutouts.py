@@ -22,7 +22,7 @@ gas_cutout = {"gas":
               "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
 
 if rank==0:
-    with open("cut2.5.pkl","rb") as f:
+    with open("parent.pkl","rb") as f:
         subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
 else:
