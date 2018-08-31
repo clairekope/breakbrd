@@ -185,14 +185,14 @@ if rank==0:
     for dic in cut_radii_lst:
         for k, v in dic.items():
             cut_radii[k] = v            
-    with open("cut_radii.pkl", "wb") as f:
+    with open("cut4_radii.pkl", "wb") as f:
         pickle.dump(cut_radii, f)
 
     cut_ssfr = {}
     for dic in cut_ssfr_lst:
         for k,v in dic.items():
             cut_ssfr[k] = v
-    with open("cut_ssfr.pkl","wb") as f:
+    with open("cut4_ssfr.pkl","wb") as f:
         pickle.dump(cut_ssfr, f)
 
     all_ssfr = {}
@@ -202,9 +202,9 @@ if rank==0:
     with open("cut3_ssfr.pkl","wb") as f:
         pickle.dump(all_ssfr, f)
         
-    cut5 = {}
+    cut_u = {}
     for k in cut_radii.keys():
         if k in cut_ssfr:
-            cut5[k] = cut_ssfr[k]
-    with open("cut5.pkl", "wb") as f:
-        pickle.dump(cut5, f)
+            cut_u[k] = cut_ssfr[k]
+    with open("cut4_union.pkl", "wb") as f:
+        pickle.dump(cut_u, f)
