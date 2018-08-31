@@ -1,0 +1,26 @@
+# README
+## Pickle Files
+### Prefixes
+cut1 would be the mass > 10**10 Msun cut but it is not saved to file
+
+File Prefix | Cut
+------------|----
+`cut2_M_r`    | M_r < -19
+`parent`      | M_r sans M_* > 10**12 Msun and half mass radius < 2 kpc
+`cut3_g-r`    | g-r > 0.655
+`cut4`        | "Investigative" cuts; sSFR, radial inversion, or both
+`cut_final`   | D4000 < 1.4 for dusty or dustless spectra (inst SFR included)
+
+The `d4000` files contain the D4000 measures for different types of spectra (those with and without dust, and those made with or without the inclusion of the instantaneous star formation rate)
+
+`cut_final.pkl.orig` is used by my (untracked) Jupyter Notebooks to make sure any changes to the `.pkl` files don't change the final dusty D4000 cut.
+
+### Suffixes
+
+File Suffix | Contents
+------------|---------
+*none*      | sdf
+`_gas_info` | asf
+
+
+## Python Scripts
