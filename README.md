@@ -72,3 +72,60 @@ Sadly, the `cut_final` files are generated in Jupyter Notebooks that currently a
 ### Pipeline
 
 To get the information necessary to generate `cut_final`, the scripts should be run as laid out in `python.slurm`. Note that `stellar_spectra.py` and `get_d4000.py` have booleans at the top that should be set regarding the inclusion of dust and the instantaneous SFR in the spectra.
+
+## Distributing Work Using MPI and `scatter_work`
+```python3
+import pickle
+from mpi4py import MPI
+from utilities import *
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
+
+if rank == 0:
+    # Assemble the subhalos IDs you want to operate on as a numpy array
+    # This example assumes they live in a pickled dictionary
+    with open("dict.pkl", "rb") as f:
+        dictionary = pickle.read(f)
+    subhalo_ids = np.array([k for k in dictionary.keys()])
+    
+    # Any secondary data to be broadcasted should also be read in on the
+    # root processor; for instance, supplementary gas data
+    with open("gas_data.pkl", "rb") as f:
+        secondary_data = pickle.load(f)
+    secondary_data = np.arange(5)
+else:
+    # Variable names need to be declared for any data you want to distribute
+    subhalo_ids = None
+    secondary_data = None
+
+# This helper function from utilities.py pads and scatters the arrays
+halo_subset = scatter_work(subhalo_ids, rank, size)
+
+# Because scattered arrays have to be the same size, they are padded with -1
+good_ids = np.where(halo_subset > -1)
+
+# Broadcast the secondary data normally
+secondary_data = comm.bcast(secondary_data, root=0)
+
+my_storage = {} # every rank needs their own way of story results, to be combined later
+for halo in halo_subset[good_ids]:
+    # do stuff
+
+# Gather the individual results onto one process, stitch together, and save
+result_lst = comm.gather(my_storage, root=0)
+if rank==0:
+    storage = {}
+    for dic in result_lst:
+        for k, v in dic.items():
+            storage[k] = v
+    with open("these_results.pkl", "wb") as f:
+        pickle.dump(storage, f)
+        
+# If you want to broadcast the compiled data back out to all processes, add this:
+else:
+    storage = None
+storage = comm.bcast(storage, root=0)
+
+```
