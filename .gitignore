@@ -1,6 +1,8 @@
+__pycache__/
 *~
 *.ipynb
 *.fits
 *.hdf5
 *.png
 *.out
+*.tar.gz
