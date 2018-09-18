@@ -15,7 +15,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 star_cutout = {"stars":
         "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 gas_cutout = {"gas":

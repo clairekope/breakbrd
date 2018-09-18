@@ -39,7 +39,7 @@ my_cut_inst_ssfr = {}
 my_all_gas_data= {}
 
 if not offline:
-    url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+    url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
     gas_cutout = {"gas":
         "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
     star_cutout = {"star":
@@ -47,7 +47,7 @@ if not offline:
 else:
     treebase = "/mnt/xfs1/home/sgenel/myceph/PUBLIC/Illustris-1/"
     if rank==0:
-        cat = readsubfHDF5.subfind_catalog(treebase, 135, keysel=['SubhaloPos'])
+        cat = readsubfHDF5.subfind_catalog(treebase, 103, keysel=['SubhaloPos'])
     else:
         cat = None
     cat = comm.bcast(cat, root=0)

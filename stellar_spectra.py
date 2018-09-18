@@ -53,7 +53,7 @@ if inst:
 my_subs = scatter_work(sub_list, rank, size)
 good_ids = np.where(my_subs > -1)[0]
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 boxsize = 75000
 H0 = 0.704 * 100
 omegaM = 0.2726

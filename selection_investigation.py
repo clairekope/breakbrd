@@ -34,15 +34,15 @@ with open("cut_final_dusty.pkl","rb") as f:
     sample = pickle.load(f)
 
 # with h5py.File('nonparametric_morphologies.hdf5') as f:
-#     cam0_id = f['Snapshot_135']['SubfindID_cam0'][:]
-#     cam1_id = f['Snapshot_135']['SubfindID_cam1'][:]
-#     cam2_id = f['Snapshot_135']['SubfindID_cam2'][:]
-#     cam3_id = f['Snapshot_135']['SubfindID_cam3'][:]
+#     cam0_id = f['Snapshot_103']['SubfindID_cam0'][:]
+#     cam1_id = f['Snapshot_103']['SubfindID_cam1'][:]
+#     cam2_id = f['Snapshot_103']['SubfindID_cam2'][:]
+#     cam3_id = f['Snapshot_103']['SubfindID_cam3'][:]
 
-#     cam0 = f['Snapshot_135']['gSDSS']['RE_cam0'][:]
-#     cam1 = f['Snapshot_135']['gSDSS']['RE_cam1'][:]
-#     cam2 = f['Snapshot_135']['gSDSS']['RE_cam2'][:]
-#     cam3 = f['Snapshot_135']['gSDSS']['RE_cam3'][:]
+#     cam0 = f['Snapshot_103']['gSDSS']['RE_cam0'][:]
+#     cam1 = f['Snapshot_103']['gSDSS']['RE_cam1'][:]
+#     cam2 = f['Snapshot_103']['gSDSS']['RE_cam2'][:]
+#     cam3 = f['Snapshot_103']['gSDSS']['RE_cam3'][:]
 
 sub_ids = [k for k in sample.keys()]
 mstar = np.array([sample[k]['stellar_mass'] for k in sub_ids]) # ensure same order
@@ -51,7 +51,7 @@ ssfr = np.array([sample[k]['inner_sSFR_1Gyr'].value for k in sub_ids])
 # half_mass = np.array([sample[k]['half_mass_rad'] for k in sub_ids])
 # half_light = np.empty((4, half_mass.size))
 
-url_base = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+url_base = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 for i, sub_id in enumerate(sub_ids):
     sub = get(url_base+str(sub_id))
     mgas[i] = sub['mass_gas']*1e10/0.704

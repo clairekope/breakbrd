@@ -1,7 +1,7 @@
 import os
 from utilities import *
 
-snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 
 # convert log solar masses into group catalog units
 min_mass = 0.704

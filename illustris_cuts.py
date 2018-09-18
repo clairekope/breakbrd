@@ -17,7 +17,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 
 
 #

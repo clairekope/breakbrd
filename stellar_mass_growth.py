@@ -36,7 +36,7 @@ my_cut_radii = {}
 my_cut_ssfr = {}
 my_all_ssfr = {}
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
+url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 cutout = {"stars":
         "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 
