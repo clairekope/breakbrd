@@ -1,4 +1,10 @@
 import requests
+import numpy as np
+from mpi4py import MPI
+
+comm = MPI.COMM_WORLD
+rank = comm.Get_rank()
+size = comm.Get_size()
 
 def scatter_work(array, mpi_rank, mpi_size, root=0):
     """ will only work if MPI has been initialized by calling script.
@@ -15,14 +21,15 @@ def scatter_work(array, mpi_rank, mpi_size, root=0):
             assert scatter_total == array.size
     else:
         scatter_total = None
-        #array = None                                                                               
+        #array = None                                                                        
+
     scatter_total = comm.bcast(scatter_total, root=root)
     subset = np.empty(scatter_total//mpi_size, dtype='i')
     comm.Scatter(array, subset, root=root)
 
     return subset
 
-def get(path, params=None):
+def get(path, params=None, path=None):
     # make HTTP GET request to path
     headers = {"api-key":"5309619565f744f9248320a886c59bec"}
     r = requests.get(path, params=params, headers=headers)
@@ -34,7 +41,7 @@ def get(path, params=None):
         return r.json() # parse json responses automatically
 
     if 'content-disposition' in r.headers:
-        filename = r.headers['content-disposition'].split("filename=")[1]
+        filename = path + r.headers['content-disposition'].split("filename=")[1]
         with open(filename, 'wb') as f:
             f.write(r.content)
         return filename # return the filename string
