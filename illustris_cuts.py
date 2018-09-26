@@ -1,5 +1,3 @@
-
-
 from __future__ import print_function, division
 import os
 import sys
@@ -9,16 +7,21 @@ from astropy.io import fits
 from astropy import units as u
 from astropy import constants as c
 from photutils import CircularAnnulus, aperture_photometry
-from mpi4py import MPI
+#from mpi4py import MPI
 from copy import deepcopy
 from utilities import *
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+# comm = MPI.COMM_WORLD
+# rank = comm.Get_rank()
+# size = comm.Get_size()
 
 snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
-
+if rank == 0:
+    z = get(snap_url[:-9])['redshift']
+    a = 1/(1+z)
+else:
+    a = None
+a = comm.bcast(a, root=0)
 
 #
 # How many galaxies total?
@@ -36,7 +39,7 @@ if rank == 0:
     #([source](http://www.illustris-project.org/data/docs/specifications/#sec4a))
     
     # convert log solar masses into group catalog units
-    min_mass = 1 * 0.704 # 1e10/1e10 * 0.704
+    min_mass = 0.704 # 1e10/1e10 * 0.704
     
     # form query
     search_query = "?mass_stars__gt=" + str(min_mass)
@@ -70,14 +73,14 @@ if not os.path.isfile("cut2_M_r.pkl"):
     # download all fits files
     for sub_id in halo_subset[good_ids]:
     #for sub_id in subhalo_ids:
-        file = "illustris_fits/broadband_{}.fits".format(sub_id)
+        file = "illustris_fits/broadband_rest_{}.fits".format(sub_id)
         
         # skip if not fetched    
         if not os.path.isfile(file):
             #print("Rank {} fetching id {}".format(rank, sub_id)); sys.stdout.flush()
             #rband_url = snap_url + str(sub_id) + "/stellar_mocks/broadband.fits"
             #try:
-            #    get(rband_url)
+            #    get(rband_url, fpath="illustris_fits/")
             #except requests.HTTPError:
             print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
             continue
@@ -89,7 +92,7 @@ if not os.path.isfile("cut2_M_r.pkl"):
             subhalo = get(snap_url + str(sub_id))
             my_cut2_M_r[sub_id] = {"M_r":abs_mag_r,
                                "view":np.argmin(abs_mag_r),
-                               "half_mass_rad":subhalo["halfmassrad_stars"]/0.704, # kpc/h to kpc
+                               "half_mass_rad":subhalo["halfmassrad_stars"]*a/0.704, # ckpc/h to kpc
                                "stellar_mass":subhalo['mass_stars']*1e10/0.704} 
             #cut2_M_r[sub_id] = abs_mag_r
             
@@ -111,7 +114,7 @@ else: # cut2_M_r dict already generated
     if rank == 0:
         with open("cut2_M_r.pkl","rb") as f:
             cut2_M_r = pickle.load(f)
-      print("cut2_M_r.pkl exists")
+        print("cut2_M_r.pkl exists")
     else:
         cut2_M_r = None
 

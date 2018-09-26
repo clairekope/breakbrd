@@ -29,7 +29,7 @@ def scatter_work(array, mpi_rank, mpi_size, root=0):
 
     return subset
 
-def get(path, params=None, path=None):
+def get(path, params=None, fpath=None):
     # make HTTP GET request to path
     headers = {"api-key":"5309619565f744f9248320a886c59bec"}
     r = requests.get(path, params=params, headers=headers)
@@ -41,7 +41,7 @@ def get(path, params=None, path=None):
         return r.json() # parse json responses automatically
 
     if 'content-disposition' in r.headers:
-        filename = path + r.headers['content-disposition'].split("filename=")[1]
+        filename = fpath + r.headers['content-disposition'].split("filename=")[1]
         with open(filename, 'wb') as f:
             f.write(r.content)
         return filename # return the filename string

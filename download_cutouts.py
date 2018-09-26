@@ -37,7 +37,7 @@ for sub_id in my_subs[good_ids]:
     if not os.path.isfile(gas_file):
         print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
         try:
-            get(url + str(sub_id) + "/cutout.hdf5", gas_cutout, 'gas')
+            get(url + str(sub_id) + "/cutout.hdf5", gas_cutout, 'gas_cutouts/')
         except:
             pass
         
@@ -45,6 +45,6 @@ for sub_id in my_subs[good_ids]:
     if not os.path.isfile(star_file):
         print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
         try:
-            get(url + str(sub_id) + "/cutout.hdf5", star_cutout,'stellar')
+            get(url + str(sub_id) + "/cutout.hdf5", star_cutout,'stellar_cutouts/')
         except:
             pass
