@@ -167,13 +167,15 @@ if not os.path.isfile("cut3_g-r.pkl"):
         exten = 14 + cut2_M_r[sub_id]['view']
         
         # Prepare broadband images for magnitude calculation
-        unit = u.Unit(fits.getheader(file, ext=exten)['IMUNIT']) # spectral flux density
-        Jy = u.Unit("erg / s / Hz / cm**2") # astropy Jy cancels extra dims
-        npix = fits.getheader(file, ext=exten)['NAXIS1'] # pixels per dim (square image)
+        hdr = fits.getheader(file, ext=exten)
+        unit = u.Unit(hdr['IMUNIT']) # spectral flux density
+        npix = hdr['NAXIS1'] # pixels per dim (square image)
+        pix_size = hdr['CD1_1']
+        assert pix_size == hdr['CD2_2']
+        
         r_to_nu = ((6201.4 * u.Angstrom).to(u.m))**2 / c.c # from per-lambda to per-nu
         g_to_nu = ((4724.1 * u.Angstrom).to(u.m))**2 / c.c
-        R_half = cut2_M_r[sub_id]['half_mass_rad']*u.kpc
-        pix_size = 10*R_half/256 # FOV is 10 stellar half mass radii
+        
         solid_ang = (pix_size)**2 / (10*u.pc)**2 # place object at 10 pc for abs mag
         solid_ang = solid_ang.to(u.sr, equivalencies=u.dimensionless_angles())
         
@@ -183,6 +185,7 @@ if not os.path.isfile("cut3_g-r.pkl"):
         sdss_g_mod = sdss_g * solid_ang * g_to_nu
         sdss_r_mod = sdss_r * solid_ang * r_to_nu
         
+        Jy = u.Unit("erg / s / Hz / cm**2") # astropy Jy cancels extra dims
         f_zero = 3631e-23 * Jy # zero-point flux
         
         # Construct annulus for photometery
