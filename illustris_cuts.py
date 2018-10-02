@@ -177,8 +177,8 @@ if not os.path.isfile("cut3_g-r.pkl"):
         solid_ang = (pix_size)**2 / (10*u.pc)**2 # place object at 10 pc for abs mag
         solid_ang = solid_ang.to(u.sr, equivalencies=u.dimensionless_angles())
         
-        sdss_g = fits.getdata(file, ext=14)[3] * unit
-        sdss_r = fits.getdata(file, ext=14)[4] * unit
+        sdss_g = fits.getdata(file, ext=exten)[3] * unit
+        sdss_r = fits.getdata(file, ext=exten)[4] * unit
         
         sdss_g_mod = sdss_g * solid_ang * g_to_nu
         sdss_r_mod = sdss_r * solid_ang * r_to_nu
