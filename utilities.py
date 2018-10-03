@@ -48,7 +48,7 @@ def get(path, params=None, fpath=None):
 
     return r
 
-def periodic_centering(x, center, boxsixe):
+def periodic_centering(x, center, boxsize):
     quarter = boxsize/4
     upper_qrt = boxsize-quarter
     lower_qrt = quarter

@@ -86,8 +86,12 @@ if not os.path.isfile("cut2_M_r.pkl"):
             continue
 
         # analyze
-        #print("Rank {} reading id {}".format(rank, sub_id)); sys.stdout.flush()
-        abs_mag_r = np.array(fits.getdata(file, ext=13)[4][13:21:2])
+        print("Rank {} reading id {}".format(rank, sub_id)); sys.stdout.flush()
+        try:
+            abs_mag_r = np.array(fits.getdata(file, ext=13)[4][13:21:2])
+        except OSError:
+            continue
+
         if (abs_mag_r < -19).any():
             subhalo = get(snap_url + str(sub_id))
             my_cut2_M_r[sub_id] = {"M_r":abs_mag_r,
@@ -163,7 +167,7 @@ if not os.path.isfile("cut3_g-r.pkl"):
     my_cut3_gr = {}
 
     for sub_id in halo_subset2[good_ids]:
-        file = "illustris_fits/broadband_{}.fits".format(sub_id)
+        file = "illustris_fits/broadband_rest_{}.fits".format(sub_id)
         exten = 14 + cut2_M_r[sub_id]['view']
         
         # Prepare broadband images for magnitude calculation

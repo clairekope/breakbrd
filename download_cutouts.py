@@ -8,12 +8,7 @@ import pickle
 import os
 import sys
 import numpy as np
-from mpi4py import MPI
 from utilities import *
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
 url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 star_cutout = {"stars":
