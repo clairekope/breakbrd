@@ -174,8 +174,8 @@ if not os.path.isfile("cut3_g-r.pkl"):
         hdr = fits.getheader(file, ext=exten)
         unit = u.Unit(hdr['IMUNIT']) # spectral flux density
         npix = hdr['NAXIS1'] # pixels per dim (square image)
-        pix_size = hdr['CD1_1']
-        assert pix_size == hdr['CD2_2']
+        pix_size = hdr['CD1_1'] * u.kpc
+        assert pix_size.value == hdr['CD2_2']
         
         r_to_nu = ((6201.4 * u.Angstrom).to(u.m))**2 / c.c # from per-lambda to per-nu
         g_to_nu = ((4724.1 * u.Angstrom).to(u.m))**2 / c.c
@@ -193,6 +193,7 @@ if not os.path.isfile("cut3_g-r.pkl"):
         f_zero = 3631e-23 * Jy # zero-point flux
         
         # Construct annulus for photometery
+        R_half = cut2_M_r[sub_id]['half_mass_rad']*u.kpc
         center = (npix-1)/2
         pos = (center, center)
         rad_in = 2*u.kpc/pix_size

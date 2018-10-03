@@ -6,8 +6,6 @@ import numpy as np
 import astropy.units as u
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
-from astropy.cosmology import WMAP9
-from mpi4py import MPI
 from utilities import *
 #import readsubfHDF5
 
@@ -17,10 +15,6 @@ if offline:
 
 do_parent = True
 do_inst_cut = False
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
 if rank==0:
     if not do_parent:

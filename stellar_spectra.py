@@ -8,15 +8,10 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
-from mpi4py import MPI
 from utilities import *
 
 inst = True
 dust = True
-
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
 
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)
 
@@ -55,6 +50,9 @@ good_ids = np.where(my_subs > -1)[0]
 
 url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 boxsize = 75000
+z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/135")['redshift']
+sf = 1/(1+z)
+
 H0 = 0.704 * 100
 omegaM = 0.2726
 omegaL = 0.7274
@@ -83,9 +81,9 @@ for sub_id in my_subs[good_ids]:
     x = coords[:,0][stars] # throw out wind particles (a < 0)
     y = coords[:,1][stars]
     z = coords[:,2][stars]
-    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc / 0.704
-    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc / 0.704
-    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc / 0.704
+    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * sf/0.704
+    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * sf/0.704
+    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * sf/0.704
     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
 
     central = r < 2*u.kpc
