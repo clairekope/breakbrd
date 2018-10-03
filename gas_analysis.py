@@ -33,7 +33,7 @@ my_cut_inst_ssfr = {}
 my_all_gas_data= {}
 
 if not offline:
-    url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
+    url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
     gas_cutout = {"gas":
         "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
     star_cutout = {"star":
@@ -47,7 +47,7 @@ else:
     cat = comm.bcast(cat, root=0)
 
 boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
-z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
+z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/135")['redshift']
 a = 1/(1+z)
 dthresh = 6.4866e-4 # 0.13 cm^-3 in code units
 

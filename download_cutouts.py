@@ -10,7 +10,7 @@ import sys
 import numpy as np
 from utilities import *
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
+url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 star_cutout = {"stars":
         "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 gas_cutout = {"gas":

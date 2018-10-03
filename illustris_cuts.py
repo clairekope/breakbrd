@@ -15,7 +15,7 @@ from utilities import *
 # rank = comm.Get_rank()
 # size = comm.Get_size()
 
-snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
+snap_url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 if rank == 0:
     z = get(snap_url[:-9])['redshift']
     a = 1/(1+z)
@@ -73,7 +73,7 @@ if not os.path.isfile("cut2_M_r.pkl"):
     # download all fits files
     for sub_id in halo_subset[good_ids]:
     #for sub_id in subhalo_ids:
-        file = "illustris_fits/broadband_rest_{}.fits".format(sub_id)
+        file = "illustris_fits/broadband_{}.fits".format(sub_id)
         
         # skip if not fetched    
         if not os.path.isfile(file):
@@ -167,7 +167,7 @@ if not os.path.isfile("cut3_g-r.pkl"):
     my_cut3_gr = {}
 
     for sub_id in halo_subset2[good_ids]:
-        file = "illustris_fits/broadband_rest_{}.fits".format(sub_id)
+        file = "illustris_fits/broadband_{}.fits".format(sub_id)
         exten = 14 + cut2_M_r[sub_id]['view']
         
         # Prepare broadband images for magnitude calculation

@@ -30,7 +30,7 @@ my_cut_radii = {}
 my_cut_ssfr = {}
 my_all_ssfr = {}
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
+url = "http://www.illustris-project.org/api/Illustris-1/snapshots/135/subhalos/"
 cutout = {"stars":
         "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 
@@ -41,11 +41,11 @@ sf = 1/(1+z)
 H0 = 0.704 * 100
 omegaM = 0.2726
 omegaL = 0.7274
-#timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-#            * np.log(np.sqrt(omegaL*1./omegaM) \
-#            + np.sqrt(omegaL*1./omegaM+1))\
-#            * 3.08568e19/3.15576e16 \
-#            * u.Gyr
+timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
+            * np.log(np.sqrt(omegaL*1./omegaM) \
+            + np.sqrt(omegaL*1./omegaM+1))\
+            * 3.08568e19/3.15576e16 \
+            * u.Gyr
 
 good_ids = np.where(my_subs > -1)[0]
 
