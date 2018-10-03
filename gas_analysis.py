@@ -48,7 +48,7 @@ else:
 
 boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
 z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
-a = 1/(1+z)
+sf = 1/(1+z)
 dthresh = 6.4866e-4 # 0.13 cm^-3 in code units
 
 good_ids = np.where(my_subs > -1)[0]
@@ -94,9 +94,9 @@ for sub_id in my_subs[good_ids]:
     x = coords[:,0]
     y = coords[:,1]
     z = coords[:,2]
-    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * a/0.704
-    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * a/0.704
-    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * a/0.704
+    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * sf/0.704
+    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * sf/0.704
+    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * sf/0.704
     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
     mass = mass * 1e10 / 0.704 * u.Msun
     sfr = sfr * u.Msun/u.yr
@@ -130,9 +130,9 @@ for sub_id in my_subs[good_ids]:
     sx = scoords[:,0]
     sy = scoords[:,1]
     sz = scoords[:,2]
-    sx_rel = periodic_centering(sx, sub['pos_x'], boxsize) * u.kpc * a/0.704
-    sy_rel = periodic_centering(sy, sub['pos_y'], boxsize) * u.kpc * a/0.704
-    sz_rel = periodic_centering(sz, sub['pos_z'], boxsize) * u.kpc * a/0.704
+    sx_rel = periodic_centering(sx, sub['pos_x'], boxsize) * u.kpc * sf/0.704
+    sy_rel = periodic_centering(sy, sub['pos_y'], boxsize) * u.kpc * sf/0.704
+    sz_rel = periodic_centering(sz, sub['pos_z'], boxsize) * u.kpc * sf/0.704
     sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
     smass = smass * 1e10 / 0.704 * u.Msun
 
