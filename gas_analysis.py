@@ -13,7 +13,7 @@ offline = False
 if offline:
     import readsubfHDF5
 
-do_parent = False
+do_parent = True
 do_inst_cut = False
 
 if rank==0:
@@ -59,10 +59,18 @@ for sub_id in my_subs[good_ids]:
     if not offline:
         if not os.path.isfile(gas_file):
             print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
-            get(url + str(sub_id) + "/cutout.hdf5", gas_cutout)
+            try:
+                get(url + str(sub_id) + "/cutout.hdf5", gas_cutout, 'gas_cutouts/')
+            except requests.exceptions.HTTPError:
+                print("Gas", sub_id, "not found"); sys.stdout.flush()
+                continue
         if not os.path.isfile(star_file):
             print("Rank", rank, "downloading star", sub_id); sys.stdout.flush()
-            get(url + str(sub_id) + "/cutout.hdf5", star_cutout)
+            try:
+                get(url + str(sub_id) + "/cutout.hdf5", star_cutout, 'stellar_cutouts/')
+            except requests.exceptions.HTTPError:
+                print("Stars", sub_id, "not found"); sys.stdout.flush()
+                continue
         sub = get(url+str(sub_id))
     else:
         pos = cat.SubhaloPos[sub_id,3]

@@ -58,11 +58,19 @@ for sub_id in my_subs[good_ids]:
     star_file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     if not offline:
         if not os.path.isfile(gas_file):
-            print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
-            get(url + str(sub_id) + "/cutout.hdf5", gas_cutout)
+            print("Rank", rank, "downloading gas", sub_id); sys.stdout.flush()
+            try:
+                get(url + str(sub_id) + "/cutout.hdf5", gas_cutout, 'gas_cutouts/')
+            except requests.exceptions.HTTPError:
+                print("Gas", sub_id, "not found"); sys.stdout.flush()
+                continue
         if not os.path.isfile(star_file):
             print("Rank", rank, "downloading star", sub_id); sys.stdout.flush()
-            get(url + str(sub_id) + "/cutout.hdf5", star_cutout)
+            try:
+                get(url + str(sub_id) + "/cutout.hdf5", star_cutout, 'stellar_cutouts/')
+            except requests.exceptions.HTTPError:
+                print("Stars", sub_id, "not found"); sys.stdout.flush()
+                continue
         sub = get(url+str(sub_id))
     else:
         pos = cat.SubhaloPos[sub_id,3]
