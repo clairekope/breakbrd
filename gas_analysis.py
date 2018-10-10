@@ -13,7 +13,7 @@ offline = False
 if offline:
     import readsubfHDF5
 
-do_parent = True
+do_parent = False
 do_inst_cut = False
 
 if rank==0:
@@ -41,7 +41,7 @@ if not offline:
 else:
     treebase = "/mnt/xfs1/home/sgenel/myceph/PUBLIC/Illustris-1/"
     if rank==0:
-        cat = readsubfHDF5.subfind_catalog(treebase, 135, keysel=['SubhaloPos'])
+        cat = readsubfHDF5.subfind_catalog(treebase, 103, keysel=['SubhaloPos'])
     else:
         cat = None
     cat = comm.bcast(cat, root=0)
