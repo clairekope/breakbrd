@@ -51,8 +51,8 @@ H0 = 0.704 * 100
 omegaM = 0.2726
 omegaL = 0.7274
 timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-            * np.log(np.sqrt(omegaL*1./omegaM) \
-            + np.sqrt(omegaL*1./omegaM+1))\
+            * np.log(np.sqrt(omegaL*1./omegaM*sf**3) \
+            + np.sqrt(omegaL*1./omegaM*sf**3+1))\
             * 3.08568e19/3.15576e16 \
             * u.Gyr
 
