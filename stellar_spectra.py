@@ -5,6 +5,7 @@ import h5py
 import fsps
 import pickle
 import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
