@@ -9,14 +9,23 @@ import matplotlib.pyplot as plt
 from utilities import *
 
 use_inst = True # include instantaneous SFR
+parent = False
 
 if rank==0:
-    with open("cut3_g-r.pkl","rb") as f:
-        subs = pickle.load(f)
+    if not parent:
+        with open("cut3_g-r.pkl","rb") as f:
+            subs = pickle.load(f)
+    else:
+        with open("parent.pkl","rb") as f:
+            subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
-        with open("cut3_g-r_gas_info.pkl","rb") as f:
-            inst_sfr = pickle.load(f)
+        if not parent:
+            with open("cut3_g-r_gas_info.pkl","rb") as f:
+                inst_sfr = pickle.load(f)
+        else:
+            with open("parent_gas_info.pkl","rb") as f:
+                inst_sfr = pickle.load(f)
 else:
     subs = {}
     sub_list = None
@@ -182,26 +191,37 @@ if rank==0:
     for dic in cut_radii_lst:
         for k, v in dic.items():
             cut_radii[k] = v            
-    with open("cut4_radii.pkl", "wb") as f:
-        pickle.dump(cut_radii, f)
+    if not parent:
+        with open("cut4_radii.pkl", "wb") as f:
+            pickle.dump(cut_radii, f)
+    else:
+        print("Parent radial:", len(cut_radii))
 
     cut_ssfr = {}
     for dic in cut_ssfr_lst:
         for k,v in dic.items():
             cut_ssfr[k] = v
-    with open("cut4_ssfr.pkl","wb") as f:
-        pickle.dump(cut_ssfr, f)
+    if not parent:
+        with open("cut4_ssfr.pkl","wb") as f:
+            pickle.dump(cut_ssfr, f)
+    else:
+        print("Parent sSFR:", len(cut_ssfr))
 
     all_ssfr = {}
     for dic in all_ssfr_lst:
         for k,v in dic.items():
             all_ssfr[k] = v
-    with open("cut3_g-r_ssfr.pkl","wb") as f:
-        pickle.dump(all_ssfr, f)
+
+    if not parent:
+        with open("cut3_g-r_ssfr.pkl","wb") as f:
+            pickle.dump(all_ssfr, f)
         
     cut_u = {}
     for k in cut_radii.keys():
         if k in cut_ssfr:
             cut_u[k] = cut_ssfr[k]
-    with open("cut4_union.pkl", "wb") as f:
-        pickle.dump(cut_u, f)
+    if not parent:
+        with open("cut4_union.pkl", "wb") as f:
+            pickle.dump(cut_u, f)
+    else:
+        print("Parent union:", len(cut_u))
