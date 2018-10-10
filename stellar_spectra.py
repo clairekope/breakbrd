@@ -37,6 +37,11 @@ if rank==0:
     if inst:
         with open("cut3_g-r_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
+
+    for f in glob("spectra/{}inst/{}dust/*".format("no_" if not inst else "",
+                                                   "no_" if not dust else "")):
+        os.remove(f)
+
 else:
     sample = {}
     sub_list = None

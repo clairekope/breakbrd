@@ -30,3 +30,14 @@ for f in files:
 
 with open("d4000_{}dust{}.pkl".format("" if dust else "no_", "" if inst else "_no_inst"), "wb") as pkl:
     pickle.dump(d4000, pkl)
+
+# Do D4000 cut
+with open("parent.pkl","rb") as f:
+    parent = pickle.load(f)
+with open("parent_gas_info.pkl","rb") as f:
+    parent_gas = pickle.load(f)
+
+final = {k:{**parent_gas[k], **parent[k]} for k in d4000.keys() if d4000[k]<1.4}
+with open("cut_final_{}{}.pkl".format("dusty" if dust else "dustless", \
+                                      "_no_inst" if not inst else ""), "wb") as f:
+    pickle.dump(final, f)
