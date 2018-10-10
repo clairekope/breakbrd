@@ -7,6 +7,7 @@ import astropy.units as u
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 from utilities import *
+import pdb
 
 use_inst = True # include instantaneous SFR
 
@@ -35,17 +36,17 @@ cutout = {"stars":
         "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 
 boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
-z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/135")['redshift']
+z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
 sf = 1/(1+z)
 
 H0 = 0.704 * 100
 omegaM = 0.2726
 omegaL = 0.7274
-#timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-#            * np.log(np.sqrt(omegaL*1./omegaM) \
-#            + np.sqrt(omegaL*1./omegaM+1))\
-#            * 3.08568e19/3.15576e16 \
-#            * u.Gyr
+timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
+            * np.log(np.sqrt(omegaL*1./omegaM*sf**3) \
+            + np.sqrt(omegaL*1./omegaM*sf**3+1))\
+            * 3.08568e19/3.15576e16 \
+            * u.Gyr
 
 good_ids = np.where(my_subs > -1)[0]
 
@@ -57,7 +58,7 @@ for sub_id in my_subs[good_ids]:
     file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     if not os.path.isfile(file):
         print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
-        get(url + str(sub_id) + "/cutout.hdf5", cutout)
+        get(url + str(sub_id) + "/cutout.hdf5", cutout, "stellar_cutouts/")
     sub = get(url+str(sub_id))
     r_half = subs[sub_id]['half_mass_rad']
     print("Rank", rank, "processing", sub_id); sys.stdout.flush()
@@ -91,7 +92,7 @@ for sub_id in my_subs[good_ids]:
     bins = [0, 2, 1*r_half, 2*r_half] * u.kpc
     binner = np.digitize(r, bins) # index len(bins) is overflow
 
-    time_bins = np.arange(0,14.01,0.01) # 0 to 14 Gyr in 10 Myr bins
+    time_bins = np.arange(0, timenow.value+0.01, 0.01) # 0 to 14 Gyr in 10 Myr bins
     dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
     #
@@ -132,8 +133,8 @@ for sub_id in my_subs[good_ids]:
             
             if use_inst:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
-                sfr[-1] = inst_sfr[sub_id]['inner_SFR']
-            
+                sfr[-1] += inst_sfr[sub_id]['inner_SFR']
+
             # unweighted avg b/c time bins are currently equal sized
             # denom is current mass in this radial bin
             ssfr_1Gyr = np.average(sfr[-101:])/np.sum(curr_mass[binner==r_bin])

@@ -50,7 +50,7 @@ good_ids = np.where(my_subs > -1)[0]
 
 url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 boxsize = 75000
-z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/135")['redshift']
+z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
 sf = 1/(1+z)
 
 H0 = 0.704 * 100
@@ -109,7 +109,7 @@ for sub_id in my_subs[good_ids]:
     met_bins[-1] = 9
     z_binner = np.digitize(np.log10(metals), met_bins)
 
-    time_bins = np.arange(0,14.01,0.01)
+    time_bins = np.arange(0, timenow.value+0.01, 0.01)
     time_avg = (time_bins[:-1] + time_bins[1:])/2 # formation time for fsps
     dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
@@ -130,10 +130,10 @@ for sub_id in my_subs[good_ids]:
 
         if inst:
             # Add instantaneous SFR from gas to last bin (i.e., now)
-            sfr[-1] = inst_sfr[sub_id]['inner_SFR'].value
+            sfr[-1] += inst_sfr[sub_id]['inner_SFR'].value
 
         sp.set_tabular_sfh(time_avg, sfr)
-        wave, spec = sp.get_spectrum(tage=14.0)
+        wave, spec = sp.get_spectrum(tage=timenow.value)
         spec_z[i] = spec
 
     full_spec = np.nansum(spec_z, axis=0)

@@ -57,7 +57,7 @@ for sub_id in my_subs[good_ids]:
     file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     if not os.path.isfile(file):
         print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
-        get(url + str(sub_id) + "/cutout.hdf5", cutout)
+        get(url + str(sub_id) + "/cutout.hdf5", cutout, "stellar_cutouts/")
     sub = get(url+str(sub_id))
     r_half = subs[sub_id]['half_mass_rad']
     print("Rank", rank, "processing", sub_id); sys.stdout.flush()
@@ -91,7 +91,7 @@ for sub_id in my_subs[good_ids]:
     bins = [0, 2, 1*r_half, 2*r_half] * u.kpc
     binner = np.digitize(r, bins) # index len(bins) is overflow
 
-    time_bins = np.arange(0,14.01,0.01) # 0 to 14 Gyr in 10 Myr bins
+    time_bins = np.arange(0, timenow.value+0.01, 0.01)
     dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
     #
@@ -132,8 +132,8 @@ for sub_id in my_subs[good_ids]:
             
             if use_inst:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
-                sfr[-1] = inst_sfr[sub_id]['inner_SFR']
-            
+                sfr[-1] += inst_sfr[sub_id]['inner_SFR']
+
             # unweighted avg b/c time bins are currently equal sized
             # denom is current mass in this radial bin
             ssfr_1Gyr = np.average(sfr[-101:])/np.sum(curr_mass[binner==r_bin])
