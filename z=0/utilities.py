@@ -1,33 +1,36 @@
 import requests
 import numpy as np
-from mpi4py import MPI
 
-comm = MPI.COMM_WORLD
-rank = comm.Get_rank()
-size = comm.Get_size()
+try:
+    from mpi4py import MPI
+    
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    size = comm.Get_size()
 
-def scatter_work(array, mpi_rank, mpi_size, root=0):
-    """ will only work if MPI has been initialized by calling script.
-        array should only exist on root & be None elsewhere"""
-    if mpi_rank == root:
-        scatter_total = array.size
-        mod = scatter_total % mpi_size
-        if mod != 0:
-            print("Padding array for scattering...")
-            pad = -1 * np.ones(mpi_size - mod, dtype='i')
-            array = np.concatenate((array, pad))
-            scatter_total += mpi_size - mod
-            assert scatter_total % mpi_size == 0
-            assert scatter_total == array.size
-    else:
-        scatter_total = None
-        #array = None                                                                        
+    def scatter_work(array, mpi_rank, mpi_size, root=0):
+        """ will only work if MPI has been initialized by calling script.
+            array should only exist on root & be None elsewhere"""
+        if mpi_rank == root:
+            scatter_total = array.size
+            mod = scatter_total % mpi_size
+            if mod != 0:
+                print("Padding array for scattering...")
+                pad = -1 * np.ones(mpi_size - mod, dtype='i')
+                array = np.concatenate((array, pad))
+                scatter_total += mpi_size - mod
+                assert scatter_total % mpi_size == 0
+                assert scatter_total == array.size
+        else:
+            scatter_total = None
 
-    scatter_total = comm.bcast(scatter_total, root=root)
-    subset = np.empty(scatter_total//mpi_size, dtype='i')
-    comm.Scatter(array, subset, root=root)
+        scatter_total = comm.bcast(scatter_total, root=root)
+        subset = np.empty(scatter_total//mpi_size, dtype='i')
+        comm.Scatter(array, subset, root=root)
 
-    return subset
+        return subset
+except ImportError: # no mpi4py
+    pass # just don't define scatter_work and other MPI comm variables
 
 def get(path, params=None, fpath=""):
     # make HTTP GET request to path
