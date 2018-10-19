@@ -39,7 +39,7 @@ mgas = np.empty_like(mstar)
 # half_mass = np.array([sample[k]['half_mass_rad'] for k in sub_ids])
 # half_light = np.empty((4, half_mass.size))
 
-url_base = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
+url_base = "http://www.illustris-project.org/api/Illustris-1/snapshots/153/subhalos/"
 for i, sub_id in enumerate(sub_ids):
     sub = get(url_base+str(sub_id))
     mgas[i] = sub['mass_gas']*1e10/0.704
@@ -61,12 +61,12 @@ log_mgas = np.where(mgas!=0, np.log10(mgas), np.nan)
 plt.hist([log_mstar, log_mgas], 20, range=(6.2,11.91), histtype='step', label=["stars",'gas'])
 plt.xlabel("$\mathrm{\log_{10}\ M\ [M_\odot]}$")
 plt.legend(loc="upper left")
-plt.savefig("mass_dist_z05.png"); plt.clf()
+plt.savefig("mass_dist_z00.png"); plt.clf()
 
 plt.scatter(log_mstar, log_mgas, marker='.')
 plt.xlabel("$\mathrm{\log_{10}\ M_*\ [M_\odot]}$")
 plt.ylabel("$\mathrm{\log_{10}\ M_{gas}\ [M_\odot]}$")
-plt.savefig("mass_scatter_z05.png"); plt.clf()
+plt.savefig("mass_scatter_z00.png"); plt.clf()
 
 # plt.scatter(log_mstar, half_mass, marker='.', label='Half Mass')
 # plt.scatter(log_mstar, half_light_mean, marker='.', label='<Half Light>')
