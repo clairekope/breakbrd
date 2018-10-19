@@ -28,7 +28,7 @@ with open("cut_final_dusty.pkl","rb") as f:
 # Ascertain which are centrals
 first_in_group = []
 for i in range(8):
-    file = "group_data/groups_103.{}.hdf5".format(i)
+    file = "group_data/groups_135.{}.hdf5".format(i)
     with h5py.File(file) as f:
         gfs = f['Group']['GroupFirstSub'][:]
         for sub in final_cut.keys():
@@ -242,7 +242,7 @@ ax[1,3].set_ylim(0,1)
 ax[1,3].yaxis.set_visible(False)
 
 ax[1,0].set_ylabel("Instantaneous SFR(fiber) / SFR(total)")
-fig.savefig("sfr_ratio_z05.png")
+fig.savefig("sfr_ratio_z00.png")
 
 ###################
 # Gas Concentration
@@ -333,7 +333,7 @@ ax[1,3].set_ylim(0,0.6)
 ax[1,3].yaxis.set_visible(False)
 
 ax[1,0].set_ylabel("Gas(fiber) / Gas(total)")
-fig.savefig("gas_ratio_z05.png")
+fig.savefig("gas_ratio_z00.png")
 
 ##########################
 # Gas mass vs stellar mass
@@ -376,4 +376,4 @@ ax[1].set_xlabel("$\mathrm{M_*\ [M_\odot]}$")
 
 ax[0].set_xlim(10,12)
 ax[0].set_ylim(7, 12)
-fig.savefig("mass_comparison_z05.png")
+fig.savefig("mass_comparison_z00.png")
