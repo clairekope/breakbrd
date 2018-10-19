@@ -1,5 +1,3 @@
-#	all_10^10_subhalo_pos
-#	all_10^10_subhalo_pos.copy
 #	final_cut_mergers/
 #	group_data/
 #	parent_M_r_mergers/
