@@ -13,8 +13,8 @@ offline = False
 if offline:
     import readsubfHDF5
 
-do_parent = False
-do_inst_cut = False
+do_parent = True
+#do_inst_cut = False
 
 if rank==0:
     if not do_parent:
@@ -113,6 +113,7 @@ for sub_id in my_subs[good_ids]:
     mid_region   = np.logical_and(r > 2*u.kpc, r < r_half)
     outer_region = np.logical_and(r > r_half,  r < 2*r_half)
     far_region   = r > 2*r_half
+    disk_region  = np.logical_and(r > 2*u.kpc, r < 2*r_half)
     
     inner_dense = np.logical_and(r < 2*u.kpc,  dens > dthresh)
     mid_dense   = np.logical_and(mid_region,   dens > dthresh)
@@ -123,12 +124,20 @@ for sub_id in my_subs[good_ids]:
     mid_sfr   = np.sum(sfr[mid_region])
     outer_sfr = np.sum(sfr[outer_region])
     far_sfr   = np.sum(sfr[far_region])
+    disk_sfr  = np.sum(sfr[disk_region])
     
     my_all_gas_data[sub_id] = {}
+
     my_all_gas_data[sub_id]['inner_SFR'] = inner_sfr
+    my_all_gas_data[sub_id]['mid_SFR']   = mid_sfr
+    my_all_gas_data[sub_id]['outer_SFR'] = outer_sfr
+    my_all_gas_data[sub_id]['far_SFR']   = far_sfr
+    my_all_gas_data[sub_id]['disk_SFR']  = disk_sfr
     my_all_gas_data[sub_id]['total_SFR'] = np.sum(sfr)
+
     my_all_gas_data[sub_id]['inner_gas'] = np.sum(mass[inner_region])
     my_all_gas_data[sub_id]['total_gas'] = np.sum(mass)
+
     my_all_gas_data[sub_id]['inner_sfe'] = inner_sfr  / np.sum(mass[inner_dense])
     my_all_gas_data[sub_id]['mid_sfe']   = mid_sfr    / np.sum(mass[mid_dense])
     my_all_gas_data[sub_id]['outer_sfe'] = outer_sfr  / np.sum(mass[outer_dense])
@@ -144,24 +153,34 @@ for sub_id in my_subs[good_ids]:
     sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
     smass = smass * 1e10 / 0.704 * u.Msun
 
-    ssfr = inner_sfr / np.sum(smass[sr < 2*u.kpc]) 
+    inner_sregion = sr < 2*u.kpc
+    mid_sregion   = np.logical_and(sr > 2*u.kpc, sr < r_half)
+    outer_sregion = np.logical_and(sr > r_half,  sr < 2*r_half)
+    far_sregion   = sr > 2*r_half
+    disk_sregion  = np.logical_and(sr > 2*u.kpc, sr < 2*r_half)
     
-    my_all_gas_data[sub_id]['inner_sSFR'] = ssfr
-    if ssfr > 1e-11/u.yr and do_inst_cut:
-        my_cut_inst_ssfr[sub_id] = subs[sub_id]
-        my_cut_inst_ssfr[sub_id]['inner_inst_sSFR'] = ssfr
+    my_all_gas_data[sub_id]['inner_sSFR'] = inner_sfr / np.sum(smass[inner_sregion]) 
+    my_all_gas_data[sub_id]['mid_sSFR']   = mid_sfr   / np.sum(smass[mid_sregion])
+    my_all_gas_data[sub_id]['outer_sSFR'] = outer_sfr / np.sum(smass[outer_sregion])
+    my_all_gas_data[sub_id]['far_sSFR']   = far_sfr   / np.sum(smass[far_sregion])
+    my_all_gas_data[sub_id]['disk_sSFR']  = disk_sfr  / np.sum(smass[disk_sregion])
+    my_all_gas_data[sub_id]['total_sSFR'] = np.sum(sfr) / np.sum(smass)
 
-if do_inst_cut:
-    cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
+#     if ssfr > 1e-11/u.yr and do_inst_cut:
+#         my_cut_inst_ssfr[sub_id] = subs[sub_id]
+#         my_cut_inst_ssfr[sub_id]['inner_inst_sSFR'] = ssfr
+
+# if do_inst_cut:
+#     cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
 all_gas_lst = comm.gather(my_all_gas_data, root=0)
 if rank==0:
-    if do_inst_cut:
-        cut_ssfr = {}
-        for dic in cut_ssfr_lst:
-            for k,v in dic.items():
-                cut_ssfr[k] = v
-        with open("cut_inst_ssfr.pkl","wb") as f:
-            pickle.dump(cut_ssfr, f)
+    # if do_inst_cut:
+    #     cut_ssfr = {}
+    #     for dic in cut_ssfr_lst:
+    #         for k,v in dic.items():
+    #             cut_ssfr[k] = v
+    #     with open("cut_inst_ssfr.pkl","wb") as f:
+    #         pickle.dump(cut_ssfr, f)
     
     all_gas = {}
     for dic in all_gas_lst:
