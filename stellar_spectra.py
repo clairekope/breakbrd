@@ -1,6 +1,3 @@
-
-# coding: utf-8
-
 import h5py
 import fsps
 import pickle
@@ -9,11 +6,13 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import astropy.units as u
+# prep MPI environnment and import scatter_work(), get(), periodic_centering(),
+# CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
 from glob import glob
 
-inst = True
-dust = True
+inst = args.inst_sfr
+dust = args.dusty
 
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)
 
@@ -33,14 +32,15 @@ sp.params['imf_type'] = 1 # Chabrier (2003)
 
 
 if rank==0:
-    with open("cut3_g-r.pkl","rb") as f:
+    with open(folder+"cut3_g-r.pkl","rb") as f:
         sample = pickle.load(f)
     sub_list = np.array([k for k in sample.keys()])
     if inst:
-        with open("cut3_g-r_gas_info.pkl","rb") as f:
+        with open(folder+"cut3_g-r_gas_info.pkl","rb") as f:
             inst_sfr = pickle.load(f)
 
-    for f in glob("spectra/{}inst/{}dust/*".format("no_" if not inst else "",
+    for f in glob(folder+"spectra/{}inst/{}dust/*".format(
+                                                   "no_" if not inst else "",
                                                    "no_" if not dust else "")):
         os.remove(f)
 
@@ -55,9 +55,8 @@ if inst:
 my_subs = scatter_work(sub_list, rank, size)
 good_ids = np.where(my_subs > -1)[0]
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
-boxsize = 75000
-z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
+boxsize = get(url_dset)['boxsize']
+z = get(url_dset + "snapshots/103")['redshift']
 sf = 1/(1+z)
 
 H0 = 0.704 * 100
@@ -73,9 +72,9 @@ for sub_id in my_subs[good_ids]:
         if sub_id not in inst_sfr: # it doesnt have gas!
             continue   
                                    
-    sub = get(url + str(sub_id))
+    sub = get(url_sbhalos + str(sub_id))
     
-    file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
+    file = folder+"stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     with h5py.File(file) as f:
         coords = f['PartType4']['Coordinates'][:,:]
         a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
@@ -145,7 +144,8 @@ for sub_id in my_subs[good_ids]:
 
     full_spec = np.nansum(spec_z, axis=0)
     print("Rank",rank,"writing spectra_{:06d}.txt".format(sub_id));sys.stdout.flush()
-    np.savetxt("spectra/{}inst/{}dust/spectra_{:06d}.txt".format("no_" if not inst else "",
-                                                                 "no_" if not dust else "",
-                                                                 sub_id),
+    np.savetxt(folder+"spectra/{}inst/{}dust/spectra_{:06d}.txt".format(
+                                                        "no_" if not inst else "",
+                                                        "no_" if not dust else "",
+                                                        sub_id),
                np.vstack((wave, full_spec)))

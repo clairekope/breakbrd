@@ -6,22 +6,19 @@ import numpy as np
 import astropy.units as u
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
-from utilities import *
-#import readsubfHDF5
+# prep MPI environnment and import scatter_work(), get(), periodic_centering(),
+# CLI args container, url_dset, url_sbhalos, folder
+from utilities import * 
 
-offline = False
-if offline:
-    import readsubfHDF5
-
-do_parent = False
-do_inst_cut = False
+do_parent = args.parent # now set by arg parser instead of editing file
+do_inst_cut = False     # "permanently" off
 
 if rank==0:
     if not do_parent:
-        with open("cut3_g-r.pkl","rb") as f:
+        with open(folder+"cut3_g-r.pkl","rb") as f:
             subs = pickle.load(f)
     else:
-        with open("parent.pkl","rb") as f:
+        with open(folder+"parent.pkl","rb") as f:
             subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
 else:
@@ -29,56 +26,55 @@ else:
     sub_list = None
 subs = comm.bcast(subs,root=0)
 my_subs = scatter_work(sub_list, rank, size)
-my_cut_inst_ssfr = {}
+if do_inst_cut: my_cut_inst_ssfr = {}
 my_all_gas_data= {}
 
-if not offline:
-    url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
-    gas_cutout = {"gas":
-        "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
-    star_cutout = {"star":
-        "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
-else:
-    treebase = "/mnt/xfs1/home/sgenel/myceph/PUBLIC/Illustris-1/"
-    if rank==0:
-        cat = readsubfHDF5.subfind_catalog(treebase, 103, keysel=['SubhaloPos'])
-    else:
-        cat = None
-    cat = comm.bcast(cat, root=0)
+gas_cutout = {"gas":
+    "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
+star_cutout = {"star":
+  "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 
-boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
-z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
+boxsize = get(url_dset)['boxsize']
+z = get(url_dset + "snapshots/103")['redshift']
 sf = 1/(1+z)
 dthresh = 6.4866e-4 # 0.13 cm^-3 in code units
 
 good_ids = np.where(my_subs > -1)[0]
 
+if not os.path.isdir(folder+"gas_cutouts"):
+    os.mkdir(folder+"gas_cutouts")
+if not os.path.isdir(folder+"stellar_cutouts"):
+    os.mkdir(folder+"stellar_cutouts")
+
 for sub_id in my_subs[good_ids]:
-    gas_file = "gas_cutouts/cutout_{}.hdf5".format(sub_id)
-    star_file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
-    if not offline:
-        if not os.path.isfile(gas_file):
-            print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
-            try:
-                get(url + str(sub_id) + "/cutout.hdf5", gas_cutout, 'gas_cutouts/')
-            except requests.exceptions.HTTPError:
-                print("Gas", sub_id, "not found"); sys.stdout.flush()
-                continue
-        if not os.path.isfile(star_file):
-            print("Rank", rank, "downloading star", sub_id); sys.stdout.flush()
-            try:
-                get(url + str(sub_id) + "/cutout.hdf5", star_cutout, 'stellar_cutouts/')
-            except requests.exceptions.HTTPError:
-                print("Stars", sub_id, "not found"); sys.stdout.flush()
-                continue
-        sub = get(url+str(sub_id))
-    else:
-        pos = cat.SubhaloPos[sub_id,3]
-        sub = {'pos_x':pos[0],
-               'pos_y':pos[1],
-               'pos_z':pos[2]}
+    gas_file = folder+"gas_cutouts/cutout_{}.hdf5".format(sub_id)
+    star_file = folder+"stellar_cutouts/cutout_{}.hdf5".format(sub_id)
+
+    # If needed, try to download gas particles
+    if not os.path.isfile(gas_file):
+        print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
+        try:
+            get(url_sbhalos+ str(sub_id) + "/cutout.hdf5", gas_cutout,
+                folder+'gas_cutouts/')
+        except requests.exceptions.HTTPError:
+            print("Gas", sub_id, "not found"); sys.stdout.flush()
+            continue
+
+    # If needed, try to download star particles
+    if not os.path.isfile(star_file):
+        print("Rank", rank, "downloading star", sub_id); sys.stdout.flush()
+        try:
+            get(url_sbhalos+ str(sub_id) + "/cutout.hdf5", star_cutout, 
+                folder+'stellar_cutouts/')
+        except requests.exceptions.HTTPError:
+            print("Stars", sub_id, "not found"); sys.stdout.flush()
+            continue
+
+    # Get half mass radius
+    sub = get(url_sbhalos+str(sub_id))
     r_half = subs[sub_id]['half_mass_rad']*u.kpc
 
+    # Read particle data
     try:
         with h5py.File(gas_file) as f:
             coords = f['PartType0']['Coordinates'][:,:]
@@ -153,19 +149,23 @@ for sub_id in my_subs[good_ids]:
 
 if do_inst_cut:
     cut_ssfr_lst = comm.gather(my_cut_inst_ssfr, root=0)
+
 all_gas_lst = comm.gather(my_all_gas_data, root=0)
+
 if rank==0:
     if do_inst_cut:
         cut_ssfr = {}
         for dic in cut_ssfr_lst:
             for k,v in dic.items():
                 cut_ssfr[k] = v
-        with open("cut_inst_ssfr.pkl","wb") as f:
+        with open(folder+"cut_inst_ssfr.pkl","wb") as f:
             pickle.dump(cut_ssfr, f)
     
     all_gas = {}
     for dic in all_gas_lst:
         for k,v in dic.items():
             all_gas[k] = v
-    with open("{}_gas_info.pkl".format("parent" if do_parent else "cut3_g-r"),"wb") as f:
+    with open(folder+"{}_gas_info.pkl".format(
+                        "parent" if do_parent else "cut3_g-r"
+                                              ),"wb") as f:
         pickle.dump(all_gas,f)

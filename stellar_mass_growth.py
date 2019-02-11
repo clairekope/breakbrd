@@ -6,26 +6,28 @@ import numpy as np
 import astropy.units as u
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
+# prep MPI environnment and import scatter_work(), get(), periodic_centering(),
+# CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
 import pdb
 
-use_inst = True # include instantaneous SFR
-parent = False
+use_inst = args.inst_sfr # include instantaneous SFR
+parent = args.parent
 
 if rank==0:
     if not parent:
-        with open("cut3_g-r.pkl","rb") as f:
+        with open(folder+"cut3_g-r.pkl","rb") as f:
             subs = pickle.load(f)
     else:
-        with open("parent.pkl","rb") as f:
+        with open(folder+"parent.pkl","rb") as f:
             subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:
         if not parent:
-            with open("cut3_g-r_gas_info.pkl","rb") as f:
+            with open(folder+"cut3_g-r_gas_info.pkl","rb") as f:
                 inst_sfr = pickle.load(f)
         else:
-            with open("parent_gas_info.pkl","rb") as f:
+            with open(folder+"parent_gas_info.pkl","rb") as f:
                 inst_sfr = pickle.load(f)
 else:
     subs = {}
@@ -40,12 +42,11 @@ my_cut_radii = {}
 my_cut_ssfr = {}
 my_all_ssfr = {}
 
-url = "http://www.illustris-project.org/api/Illustris-1/snapshots/103/subhalos/"
 cutout = {"stars":
         "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 
-boxsize = get("http://www.illustris-project.org/api/Illustris-1")['boxsize']
-z = get("http://www.illustris-project.org/api/Illustris-1/snapshots/103")['redshift']
+boxsize = get(url_dset)['boxsize']
+z = get(url_dset + "snapshots/103")['redshift']
 sf = 1/(1+z)
 
 H0 = 0.704 * 100
@@ -64,12 +65,15 @@ for sub_id in my_subs[good_ids]:
         if sub_id not in inst_sfr: # it doesnt have gas!
             continue
             
-    file = "stellar_cutouts/cutout_{}.hdf5".format(sub_id)
+    file = folder+"stellar_cutouts/cutout_{}.hdf5".format(sub_id)
     if not os.path.isfile(file):
         print("Rank", rank, "downloading",sub_id); sys.stdout.flush()
-        get(url + str(sub_id) + "/cutout.hdf5", cutout, "stellar_cutouts/")
-    sub = get(url+str(sub_id))
+        get(url_sbhalos + str(sub_id) + "/cutout.hdf5", cutout,
+            folder+"stellar_cutouts/")
+
+    sub = get(url_sbhalos+str(sub_id))
     r_half = subs[sub_id]['half_mass_rad']
+
     print("Rank", rank, "processing", sub_id); sys.stdout.flush()
 
     with h5py.File(file) as f:
@@ -187,13 +191,15 @@ for sub_id in my_subs[good_ids]:
 cut_radii_lst = comm.gather(my_cut_radii, root=0)
 cut_ssfr_lst = comm.gather(my_cut_ssfr, root=0)
 all_ssfr_lst = comm.gather(my_all_ssfr, root=0)
+
 if rank==0:
     cut_radii = {}
     for dic in cut_radii_lst:
         for k, v in dic.items():
-            cut_radii[k] = v            
+            cut_radii[k] = v
+        
     if not parent:
-        with open("cut4_radii.pkl", "wb") as f:
+        with open(folder+"cut4_radii.pkl", "wb") as f:
             pickle.dump(cut_radii, f)
     else:
         print("Parent radial:", len(cut_radii))
@@ -202,8 +208,9 @@ if rank==0:
     for dic in cut_ssfr_lst:
         for k,v in dic.items():
             cut_ssfr[k] = v
+
     if not parent:
-        with open("cut4_ssfr.pkl","wb") as f:
+        with open(folder+"cut4_ssfr.pkl","wb") as f:
             pickle.dump(cut_ssfr, f)
     else:
         print("Parent sSFR:", len(cut_ssfr))
@@ -214,7 +221,7 @@ if rank==0:
             all_ssfr[k] = v
 
     if not parent:
-        with open("cut3_g-r_ssfr.pkl","wb") as f:
+        with open(folder+"cut3_g-r_ssfr.pkl","wb") as f:
             pickle.dump(all_ssfr, f)
         
     cut_u = {}
@@ -222,7 +229,7 @@ if rank==0:
         if k in cut_ssfr:
             cut_u[k] = cut_ssfr[k]
     if not parent:
-        with open("cut4_union.pkl", "wb") as f:
+        with open(folder+"cut4_union.pkl", "wb") as f:
             pickle.dump(cut_u, f)
     else:
         print("Parent union:", len(cut_u))

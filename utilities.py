@@ -90,12 +90,12 @@ parser.add_argument('--tng', action='store_true', dest='tng',
 
 args = parser.parse_args()
 
-if !args.tng:
+if not args.tng:
     url_dset = "http://www.illustris-project.org/api/Illustris-1/"
     if args.z==0.5:
-        url_snpsht = url_dset + "snapshots/103/"
+        url_sbhalos = url_dset + "snapshots/103/subhalos/"
         folder = 'z05/'
     elif args.z==0.0:
-        url_snpsht = url_dset + "snapshots/135/"
+        url_sbhalos = url_dset + "snapshots/135/subhalos/"
         folder = 'z00/'
 
