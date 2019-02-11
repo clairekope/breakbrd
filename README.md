@@ -42,6 +42,7 @@ The `d4000` files contain the D4000 measures for different types of spectra (tho
 
 #### `_gas_info.pkl`
 All of these are Astropy quantities, and have units attached
+
 - `total_SFR`: Instantaneous SFR for whole galaxy in Msun/yr
 - `total_gas`: Total gas mass in Msun
 - `total_sfe`: Instantaneous star formation efficiency for whole galaxy in 1/yr
@@ -67,11 +68,18 @@ This one is *not* a dictionary of dictionaries. Instead, each subhalo ID key ret
 - **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR
 - **utilities** contains helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity
 
-Sadly, the `cut_final` files are generated in Jupyter Notebooks that currently aren't backed up, as are a lot of my final plots. This obviously should be fixed by exporting (and cleaning up) the notebooks.
+### Script Arguments
+All scripts use the same set of command line arguments:
+
++ `z`: redshift; currently either 0.0 or 0.5
++ `--parent`: run the analysis for the parent sample. Replaces a boolean set at the top of some of the scripts.
++ `--inst`: include instantaneous SFR. Replaces a boolean set at the top of some of the scripts.
++ `--dusty`: include dust in the spectra. Replaces a boolean set at the top of some of the scripts.
++ `--tng`: use TNG instead of the original Illustris.
 
 ### Pipeline
 
-To get the information necessary to generate `cut_final`, the scripts should be run as laid out in `python.slurm`. Note that `stellar_spectra.py` and `get_d4000.py` have booleans at the top that should be set regarding the inclusion of dust and the instantaneous SFR in the spectra.
+To get the information necessary to generate `cut_final`, the scripts should be run as laid out in `python.slurm`. All scripts should be run with the same command line arguments.
 
 ## Distributing Work Using MPI and `scatter_work`
 ```python3
