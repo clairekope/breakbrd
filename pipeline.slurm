@@ -1,18 +1,19 @@
 #!/bin/bash
 #SBATCH -N1 --exclusive --ntasks-per-node=14
 
+export PIPELINE_ARGS='0.0 --parent --inst --dust'
+
 module purge
 module load slurm gcc openmpi python3
 
 cd $SLURM_SUBMIT_DIR
 
 # The pipeline
-#python3 download_fits.py
-mpirun python3 illustris_cuts.py
-#mpirun python3 download_cutouts.py
-mpirun python3 gas_analysis.py
-mpirun python3 stellar_mass_growth.py
-echo "Starting Spectra"
-mpirun python3 stellar_spectra.py
-python3 get_d4000.py
+
+#echo "Downloading FITS"; python3 download_fits.py $PIPELINE_ARGS
+echo "Photometric Cuts"; mpirun python3 illustris_cuts.py $PIPELINE_ARGS
+#echo "Downloading particles"; mpirun python3 download_cutouts.py $PIPELINE_ARGS
+echo "Analysing Gas";    mpirun python3 gas_analysis.py $PIPELINE_ARGS
+echo "Starting Spectra"; mpirun python3 stellar_spectra.py $PIPELINE_ARGS
+echo "Measuring D4000";  python3 get_d4000.py $PIPELINE_ARGS
 

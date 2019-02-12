@@ -63,10 +63,12 @@ This one is *not* a dictionary of dictionaries. Instead, each subhalo ID key ret
 - **gas_analysis** produces the `_gas_info.pkl` files by analysing gas particle cutouts. Whether this information is generted for the parent sample or the g-r sample is controlled by a boolean at the top of the file.
 - **get_d4000** post-processes FSPS spectra to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` pickle file (depending on whether or not dust or the instantanous SFR was used in the spectra)
 - **illustris_cuts** performs the photometric cuts, and generates `cut2_M_r`, `parent`, and `cut3_g-r.pkl` files
-- **selection_investigation** makes a bunch of plots. It's rather obsolete, except that it makes the mass growth history plots.
-- **stellar_mass_growth** determines whether a galaxy is radially inverted or has high sSFR in the center. It creates `cut3_ssfr.pkl` and the `cut4` files.
 - **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR
 - **utilities** contains helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity
+
+### Obsolete
+- **selection_investigation** makes a bunch of plots for initial investigation of cut populations.
+- **stellar_mass_growth** determines whether a galaxy is radially inverted or has high sSFR in the center. It creates the `cut4` files and ``cut3_g-r_ssfr.pkl`. The latter contains only the sSFR averaged over the last 1 Gyr for the g-r sample.
 
 ### Script Arguments
 All scripts use the same set of command line arguments:
