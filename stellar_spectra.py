@@ -13,6 +13,8 @@ from glob import glob
 
 inst = args.inst_sfr
 dust = args.dusty
+parent = args.parent
+
 
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)
 
@@ -32,16 +34,25 @@ sp.params['imf_type'] = 1 # Chabrier (2003)
 
 
 if rank==0:
-    with open(folder+"cut3_g-r.pkl","rb") as f:
-        sample = pickle.load(f)
-    sub_list = np.array([k for k in sample.keys()])
-    if inst:
-        with open(folder+"cut3_g-r_gas_info.pkl","rb") as f:
-            inst_sfr = pickle.load(f)
+    if parent:
+        with open(folder+"parent.pkl","rb") as f:
+            sample = pickle.load(f)
+        sub_list = np.array([k for k in sample.keys()])
+        if inst:
+            with open(folder+"parent_gas_info.pkl","rb") as f:
+                inst_sfr = pickle.load(f)
+    else:
+        with open(folder+"cut3_g-r.pkl","rb") as f:
+            sample = pickle.load(f)
+        sub_list = np.array([k for k in sample.keys()])
+        if inst:
+            with open(folder+"cut3_g-r_gas_info.pkl","rb") as f:
+                inst_sfr = pickle.load(f)
 
-    for f in glob(folder+"spectra/{}inst/{}dust/*".format(
-                                                   "no_" if not inst else "",
-                                                   "no_" if not dust else "")):
+    for f in glob(folder+"spectra/{}/{}inst/{}dust/*".format(
+            "parent" if parent else "g-r",
+            "no_" if not inst else "",
+            "no_" if not dust else "")):
         os.remove(f)
 
 else:
@@ -145,7 +156,8 @@ for sub_id in my_subs[good_ids]:
 
     full_spec = np.nansum(spec_z, axis=0)
     print("Rank",rank,"writing spectra_{:06d}.txt".format(sub_id));sys.stdout.flush()
-    np.savetxt(folder+"spectra/{}inst/{}dust/spectra_{:06d}.txt".format(
+    np.savetxt(folder+"spectra/{}/{}inst/{}dust/spectra_{:06d}.txt".format(
+                                                        "parent" if parent else "g-r",
                                                         "no_" if not inst else "",
                                                         "no_" if not dust else "",
                                                         sub_id),
