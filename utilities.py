@@ -18,7 +18,7 @@ try:
             mod = scatter_total % mpi_size
             if mod != 0:
                 print("Padding array for scattering...")
-                pad = -1 * np.ones(mpi_size - mod, dtype='i')
+                pad = -1 * np.ones(mpi_size - mod, dtype=array.dtype)
                 array = np.concatenate((array, pad))
                 scatter_total += mpi_size - mod
                 assert scatter_total % mpi_size == 0
@@ -27,7 +27,7 @@ try:
             scatter_total = None
 
         scatter_total = comm.bcast(scatter_total, root=root)
-        subset = np.empty(scatter_total//mpi_size, dtype='i')
+        subset = np.empty(scatter_total//mpi_size, dtype=array.dtype)
         comm.Scatter(array, subset, root=root)
 
         return subset
