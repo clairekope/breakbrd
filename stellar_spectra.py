@@ -75,7 +75,7 @@ half_width = (met_center_bins[1:] - met_center_bins[:-1])/2
 met_bins[:-1] = met_center_bins[:-1] + half_width
 met_bins[-1] = 9
 
-time_bins = np.arange(0, timenow.value+0.01, 0.01)
+time_bins = np.arange(0, timenow.value+0.01, 0.01) # Gyr
 time_avg = (time_bins[:-1] + time_bins[1:])/2 # formation time for fsps
 dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
@@ -111,7 +111,7 @@ for sub_id in my_subs[good_ids]:
 
     central = r < 2*u.kpc
 
-    init_mass = init_mass[stars][central] * 1e10 #* u.Msun
+    init_mass = init_mass[stars][central] * 1e10/0.704 #* u.Msun
     metals = metals[stars][central] / 0.0127 # Zsolar, according to Illustris table A.4
     a = a[stars][central]
 
@@ -119,7 +119,6 @@ for sub_id in my_subs[good_ids]:
                 * np.log(np.sqrt(omegaL*1./omegaM*(a)**3) \
                 + np.sqrt(omegaL*1./omegaM*(a)**3+1)) \
                 * 3.08568e19/3.15576e16 * u.Gyr
-    age = timenow-form_time
 
     z_binner = np.digitize(np.log10(metals), met_bins)
 
@@ -128,19 +127,17 @@ for sub_id in my_subs[good_ids]:
 
     for i in range(1, met_center_bins.size): # garbage metallicities have i = = 0
         sp.params['logzsol'] = met_center_bins[i]
-        #print(met_center_bins[i-1])
 
         # find the SFH for this metallicity
         pop_form = form_time[z_binner==i]
         pop_mass = init_mass[z_binner==i]
         t_binner = np.digitize(pop_form, time_bins)
         sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
-        sfr /= 1e9 # to Msun/Gyr
-        #print(sfr.nonzero())
+        sfr /= 1e9 # to Msun/yr
 
         if inst:
             # Add instantaneous SFR from gas to last bin (i.e., now)
-            sfr[-1] += inst_sfr[sub_id]['inner_SFR'].value
+            sfr[-1] += inst_sfr[sub_id]['inner_SFR'].value # Msun/yr
 
         sp.set_tabular_sfh(time_avg, sfr)
         wave, spec = sp.get_spectrum(tage=timenow.value)
