@@ -77,7 +77,7 @@ All scripts use the same set of command line arguments:
 + `--parent`: run the analysis for the parent sample. Replaces a boolean set at the top of some of the scripts.
 + `--inst`: include instantaneous SFR. Replaces a boolean set at the top of some of the scripts.
 + `--dusty`: include dust in the spectra. Replaces a boolean set at the top of some of the scripts.
-+ `--tng`: use TNG instead of the original Illustris.
++ `--tng`: use TNG instead of the original Illustris; **not implemented**.
 
 ### Pipeline
 
@@ -114,7 +114,7 @@ else:
 halo_subset = scatter_work(subhalo_ids, rank, size)
 
 # Because scattered arrays have to be the same size, they are padded with -1
-good_ids = np.where(halo_subset > -1)
+good_ids = np.where(halo_subset > -1)[0]
 
 # Broadcast the secondary data normally
 secondary_data = comm.bcast(secondary_data, root=0)
