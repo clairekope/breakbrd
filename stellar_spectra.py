@@ -53,25 +53,42 @@ else:
 if inst:
     inst_sfr = comm.bcast(inst_sfr, root=0)
 my_subs = scatter_work(sub_list, rank, size)
-good_ids = np.where(my_subs > -1)[0]
 
 boxsize = get(url_dset)['boxsize']
 z = get(url_dset + "snapshots/103")['redshift']
-sf = 1/(1+z)
+a0 = 1/(1+z)
 
 H0 = 0.704 * 100
 omegaM = 0.2726
 omegaL = 0.7274
 timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-          * np.log(np.sqrt(omegaL*1./omegaM*sf**3) \
-          + np.sqrt(omegaL*1./omegaM*sf**3+1))\
+          * np.log(np.sqrt(omegaL*1./omegaM*a0**3) \
+          + np.sqrt(omegaL*1./omegaM*a0**3+1))\
           * 3.08568e19/3.15576e16 * u.Gyr
+
+met_center_bins = np.array([-2.5, -2.05, -1.75, -1.45, -1.15, -0.85, -0.55,
+                            -0.35, -0.25, -0.15, -0.05, 0.05, 0.15, 0.25,
+                            0.4, 0.5]) # log solar, based on Miles
+
+met_bins = np.empty(met_center_bins.size)
+half_width = (met_center_bins[1:] - met_center_bins[:-1])/2
+met_bins[:-1] = met_center_bins[:-1] + half_width
+met_bins[-1] = 9
+
+time_bins = np.arange(0, timenow.value+0.01, 0.01)
+time_avg = (time_bins[:-1] + time_bins[1:])/2 # formation time for fsps
+dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
+
+# Iterate
+# Because scattered arrays have to be the same size, they are padded with -1
+good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
     if inst:
         if sub_id not in inst_sfr: # it doesnt have gas!
             continue   
-                                   
+
+    ### ILLUSTRIS ###                             
     sub = get(url_sbhalos + str(sub_id))
     
     file = folder+"stellar_cutouts/cutout_{}.hdf5".format(sub_id)
@@ -79,24 +96,23 @@ for sub_id in my_subs[good_ids]:
         coords = f['PartType4']['Coordinates'][:,:]
         a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
         init_mass = f['PartType4']['GFM_InitialMass'][:]
-        curr_mass = f['PartType4']['Masses'][:]
         metals = f['PartType4']['GFM_Metallicity'][:]
+    #################
 
     stars = a > 0
 
     x = coords[:,0][stars] # throw out wind particles (a < 0)
     y = coords[:,1][stars]
     z = coords[:,2][stars]
-    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * sf/0.704
-    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * sf/0.704
-    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * sf/0.704
+    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * a0/0.704
+    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * a0/0.704
+    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * a0/0.704
     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
 
     central = r < 2*u.kpc
 
     init_mass = init_mass[stars][central] * 1e10 #* u.Msun
-    curr_mass = curr_mass[stars][central] * 1e10 #* u.Msun
-    metals = metals[stars][central] / 0.0127 # Zsolar, according to Illustric table A.4
+    metals = metals[stars][central] / 0.0127 # Zsolar, according to Illustris table A.4
     a = a[stars][central]
 
     form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
@@ -105,19 +121,7 @@ for sub_id in my_subs[good_ids]:
                 * 3.08568e19/3.15576e16 * u.Gyr
     age = timenow-form_time
 
-    met_center_bins = np.array([-2.5, -2.05, -1.75, -1.45, -1.15, -0.85, -0.55, -0.35, -0.25, -0.15, 
-                       -0.05, 0.05, 0.15, 0.25, 0.4, 0.5]) # log solar, based on Miles
-    #met_center_bins = np.log10(sp.zlegend)
-    met_bins = np.empty(met_center_bins.size)#+1)
-    half_width = (met_center_bins[1:] - met_center_bins[:-1])/2
-    met_bins[:-1] = met_center_bins[:-1] + half_width
-    #met_bins[0] = -9
-    met_bins[-1] = 9
     z_binner = np.digitize(np.log10(metals), met_bins)
-
-    time_bins = np.arange(0, timenow.value+0.01, 0.01)
-    time_avg = (time_bins[:-1] + time_bins[1:])/2 # formation time for fsps
-    dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
     # one row for each different metallicity's spectrum
     spec_z = np.zeros((met_center_bins.size+1, 5994)) 
