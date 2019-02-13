@@ -10,7 +10,7 @@ try:
     rank = comm.Get_rank()
     size = comm.Get_size()
 
-    def scatter_work(array, mpi_rank, mpi_size, root=0):
+    def scatter_work(array, mpi_rank, mpi_size, root=0, dtype=np.int32):
         """ will only work if MPI has been initialized by calling script.
             array should only exist on root & be None elsewhere"""
         if mpi_rank == root:
@@ -18,7 +18,7 @@ try:
             mod = scatter_total % mpi_size
             if mod != 0:
                 print("Padding array for scattering...")
-                pad = -1 * np.ones(mpi_size - mod, dtype='i')
+                pad = -1 * np.ones(mpi_size - mod, dtype=dtype)
                 array = np.concatenate((array, pad))
                 scatter_total += mpi_size - mod
                 assert scatter_total % mpi_size == 0
@@ -27,7 +27,7 @@ try:
             scatter_total = None
 
         scatter_total = comm.bcast(scatter_total, root=root)
-        subset = np.empty(scatter_total//mpi_size, dtype='i')
+        subset = np.empty(scatter_total//mpi_size, dtype=dtype)
         comm.Scatter(array, subset, root=root)
 
         return subset
