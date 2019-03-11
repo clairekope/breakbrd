@@ -3,6 +3,10 @@ import os
 # CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
 
+if args.local:
+    print("Using local snapshot data; do not download cutouts. Exiting...")
+    sys.exit()
+
 # convert log solar masses into group catalog units
 min_mass = 0.704 # 1 * 10^10 Msun/h 
 

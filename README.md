@@ -59,12 +59,12 @@ This one is *not* a dictionary of dictionaries. Instead, each subhalo ID key ret
 
 
 ## Python Scripts
-- **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively
+- **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively. Will exit if using local snapshot data (`--local` flag).
 - **gas_analysis** produces the `_gas_info.pkl` files by analysing gas particle cutouts. Whether this information is generted for the parent sample or the g-r sample is controlled by a boolean at the top of the file.
-- **get_d4000** post-processes FSPS spectra to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` pickle file (depending on whether or not dust or the instantanous SFR was used in the spectra)
-- **illustris_cuts** performs the photometric cuts, and generates `cut2_M_r`, `parent`, and `cut3_g-r.pkl` files
-- **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR
-- **utilities** contains helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity
+- **get_d4000** post-processes FSPS spectra to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` pickle file (depending on whether or not dust or the instantanous SFR was used in the spectra).
+- **illustris_cuts** performs the photometric cuts, and generates `cut2_M_r`, `parent`, and `cut3_g-r.pkl` files.
+- **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR.
+- **utilities** contains helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity.
 
 ### Obsolete
 - **selection_investigation** makes a bunch of plots for initial investigation of cut populations.
@@ -77,7 +77,8 @@ All scripts use the same set of command line arguments:
 + `--parent`: run the analysis for the parent sample. Replaces a boolean set at the top of some of the scripts.
 + `--inst`: include instantaneous SFR. Replaces a boolean set at the top of some of the scripts.
 + `--dusty`: include dust in the spectra. Replaces a boolean set at the top of some of the scripts.
-+ `--tng`: use TNG instead of the original Illustris; **not implemented**.
++ `--tng`: use TNG instead of the original Illustris.
++ `--local [DIR]`: use a local copy of the full snapshot. The default is the location on Rusty, and will be set accordingly for the `--tng` flag.
 
 ### Pipeline
 

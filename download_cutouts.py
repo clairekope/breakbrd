@@ -6,6 +6,10 @@ import numpy as np
 # CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
 
+if args.local:
+    print("Using local snapshot data; do not download cutouts. Exiting...")
+    sys.exit()
+
 star_cutout = {"stars":
  "Coordinates,GFM_StellarFormationTime,GFM_InitialMass,GFM_Metallicity,Masses,Velocities"}
 gas_cutout = {"gas":

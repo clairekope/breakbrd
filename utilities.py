@@ -90,7 +90,7 @@ parser.add_argument('--tng', action='store_true', dest='tng',
 
 parser.add_argument('--local', nargs='?', action='store', dest='local',
                     metavar='DIR',
-                    help='Use a local copy of the desired snapshot, stored in the specified directory. Default depends on "--tng": /mnt/xfs1/home/sgenel/myceph/PUBLIC/[Illustris-1, IllustrisTNG100]',
+                    help='Use a local copy of the full snapshot, stored in the specified directory. Default depends on "--tng": /mnt/xfs1/home/sgenel/myceph/PUBLIC/[Illustris-1, IllustrisTNG100]',
                     const='/mnt/xfs1/home/sgenel/myceph/PUBLIC/',
                     default=None)
 
