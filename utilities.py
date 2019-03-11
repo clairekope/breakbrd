@@ -118,5 +118,3 @@ else:
     if args.z==0.0:
         url_sbhalos = url_dset + "snapshots/99/subhalos/"
         folder = 'z00_TNG/'
-
-print(args.dusty)
