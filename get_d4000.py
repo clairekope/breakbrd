@@ -39,7 +39,7 @@ with open(folder+"d4000_{}{}dust{}.pkl".format("parent_" if parent else "",
     pickle.dump(d4000, pkl)
 
 # Do D4000 cut
-with open(folder+"parent.pkl","rb") as f:
+with open(folder+"cut2_M_r_parent.pkl","rb") as f:
     parent = pickle.load(f)
 with open(folder+"parent_gas_info.pkl","rb") as f:
     parent_gas = pickle.load(f)

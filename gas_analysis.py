@@ -18,12 +18,14 @@ if rank==0:
         with open(folder+"cut3_g-r.pkl","rb") as f:
             subs = pickle.load(f)
     else:
-        with open(folder+"parent.pkl","rb") as f:
+        with open(folder+"cut2_M_r_parent.pkl","rb") as f:
             subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
+
 else:
     subs = {}
     sub_list = None
+
 subs = comm.bcast(subs,root=0)
 my_subs = scatter_work(sub_list, rank, size)
 if do_inst_cut: my_cut_inst_ssfr = {}

@@ -16,13 +16,22 @@ gas_cutout = {"gas":
  "Coordinates,Density,Masses,NeutralHydrogenAbundance,StarFormationRate,InternalEnergy"}
 
 if rank==0:
-    with open(folder+"parent.pkl","rb") as f:
-        subs = pickle.load(f)
-    sub_list = np.array([k for k in subs.keys()])
+    # Get the halos to loop over. It is now "all" of them.
+    min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
+    max_mass = 100 * littleh # 1e12 Msun
+    search_query = "?mass_stars__gt=" + str(min_mass) \
+                 + "&mass_stars__lt=" + str(max_mass) \
+                 + "&halfmassrad_stars__gt=" + str(2 / a * 0.704) # 2 kpc
+
+    cut1 = get(url_sbhalos + search_query)
+    cut1['count']
+    cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
+
+    sub_list = cut1['results']
+
 else:
-    subs = {}
     sub_list = None
-subs = comm.bcast(subs,root=0)
+
 my_subs = scatter_work(sub_list, rank, size)
 good_ids = np.where(my_subs > -1)[0]
 

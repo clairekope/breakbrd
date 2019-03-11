@@ -1,22 +1,25 @@
 import os
 import sys
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
-# CLI args container, url_dset, url_sbhalos, folder
+# CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import *
 
 if args.mock:
     print("Generating own mock images; do not download fits. Exiting...")
     sys.exit()
 
+a = 1/(1+args.z)
+
 # convert log solar masses into group catalog units
-min_mass = 0.704 # 1 * 10^10 Msun/h 
+min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
+max_mass = 100 * littleh # 1e12 Msun 
+search_query = "?mass_stars__gt=" + str(min_mass) \
+             + "&mass_stars__lt=" + str(max_mass) #\
+             #+ "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
 
-# form query
-search_query = "?mass_stars__gt=" + str(min_mass)
-
-# get galaxies with mass > min_mass
+# get galaxies with min_mass < mass < max_mass
 cut1 = get(url_sbhalos + search_query)
-cut1['count']
+print(cut1['count'])
 cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
 
 if not os.path.isdir(folder+"illustris_fits"):
