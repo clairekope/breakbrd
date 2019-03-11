@@ -79,11 +79,11 @@ parser.add_argument('z', type=float, choices=[0.0, 0.5], action="store",
 parser.add_argument('--parent', action='store_true', dest='parent',
                     help='Process parent sample')
 
-parser.add_argument('--inst', action='store_true', dest='inst_sfr',
-                    help='Include instantaneous SFR')
+parser.add_argument('--no-inst', action='store_false', dest='inst_sfr',
+                    help='Exclude instantaneous SFR')
 
-parser.add_argument('--dusty', action='store_true', dest='dusty',
-                    help='Include dust in spectra')
+parser.add_argument('--no-dust', action='store_false', dest='dusty',
+                    help='Exclude dust from spectra')
 
 parser.add_argument('--tng', action='store_true', dest='tng',
                     help='Use Illustris TNG instead of original')
@@ -119,4 +119,4 @@ else:
         url_sbhalos = url_dset + "snapshots/99/subhalos/"
         folder = 'z00_TNG/'
 
-print(args.local)
+print(args.dusty)

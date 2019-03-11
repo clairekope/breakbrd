@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -N1 --exclusive --ntasks-per-node=14
 
-export PIPELINE_ARGS='0.0 --inst --dust'
+export PIPELINE_ARGS='0.0'
 
 module purge
 module load slurm gcc openmpi python3
