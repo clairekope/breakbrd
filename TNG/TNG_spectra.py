@@ -48,9 +48,9 @@ if rank == 0:
     # Get supplementary halo information
     rhalf_str = cat.SubhaloHalfmassRadType[:,4].copy()*1.0/h_small
     mgal_gas = cat.SubhaloMassType[:,0].copy() * 1.e10 / h_small  #intrinsic units is 10^10 Msun
-    pos0 = cat.SubhaloPos[:,0].copy() * 1.0 / h_small
-    pos1 = cat.SubhaloPos[:,1].copy() * 1.0 / h_small
-    pos2 = cat.SubhaloPos[:,2].copy() * 1.0 / h_small
+    pos0 = cat.SubhaloPos[:,0].copy() # these must be in code units for centering
+    pos1 = cat.SubhaloPos[:,1].copy()
+    pos2 = cat.SubhaloPos[:,2].copy()
     del cat
     gc.collect()
 
@@ -134,57 +134,65 @@ for sub in halo_subset[good_ids]:
         stary = periodic_centering(starp[:,1], subpos1, boxsize) * a0/h_small
         starz = periodic_centering(starp[:,2], subpos2, boxsize) * a0/h_small
         stard = np.sqrt(starx**2 + stary**2 + starz**2)
-        cen_stars = stard < 2.0
 
-        starimass = starimass[stara > 0][cen_stars]*1.0e10/h_small
-        starmetal = starmetal[stara > 0][cen_stars] / 0.0127 # double check Zsun
-        stara = stara[stara > 0][cen_stars]
+        regions = {'inner': lambda r: r < 2.0,
+                   'disk': lambda r: np.logical_and(2.0 < r, r < 2*rhalfstar)
+                   'full': lambda r: r
 
-        form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-                    * np.log(np.sqrt(omegaL*1./omegaM*(stara)**3) \
-                    + np.sqrt(omegaL*1./omegaM*(stara)**3+1)) \
-                    * 3.08568e19/3.15576e16
+        for reg_name, reg_func in regions.items():
 
-        z_binner = np.digitize(np.log10(starmetal), met_bins)
+            reg_stars = reg_func(stard)
 
-        # one row for each different metallicity's spectrum
-        spec_z = np.zeros((met_center_bins.size+1, 5994)) 
-        
-        for i in range(1, met_center_bins.size): # garbage metallicities have i == 0
-            sp.params['logzsol'] = met_center_bins[i]
+            starimass = starimass[stara > 0][reg_stars]*1.0e10/h_small
+            starmetal = starmetal[stara > 0][reg_stars] / 0.0127 # double check Zsun
+            stara = stara[stara > 0][reg_stars]
 
-            # find the SFH for this metallicity
-            pop_form = form_time[z_binner==i]
-            pop_mass = starimass[z_binner==i]
-            t_binner = np.digitize(pop_form, time_bins)
-            sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
-            sfr /= 1e9 # to Msun/yr
+            form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
+                        * np.log(np.sqrt(omegaL*1./omegaM*(stara)**3) \
+                        + np.sqrt(omegaL*1./omegaM*(stara)**3+1)) \
+                        * 3.08568e19/3.15576e16
 
-            if inst:
-                # Add instantaneous SFR from gas to last bin (i.e., now)
-                # This requres using gas information
-                gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
-                gassfr = readhaloHDF5.readhalo(treebase, "snap", snapnum, "SFR ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
+            z_binner = np.digitize(np.log10(starmetal), met_bins)
 
-                # make coords relative to the center of the subhalo in kpc
-                gasx = periodic_centering(gasp[:,0], subpos0, boxsize) * a0/h_small
-                gasy = periodic_centering(gasp[:,1], subpos1, boxsize) * a0/h_small
-                gasz = periodic_centering(gasp[:,2], subpos2, boxsize) * a0/h_small
-                gasd = np.sqrt(gasx**2 + gasy**2 + gasz**2)
-                cen_gas = gasd < 2.0
+            # one row for each different metallicity's spectrum
+            spec_z = np.zeros((met_center_bins.size+1, 5994)) 
+            
+            for i in range(1, met_center_bins.size): # garbage metallicities have i == 0
+                sp.params['logzsol'] = met_center_bins[i]
 
-                cen_sfr = np.sum(gassfr[cen_gas])
-                sfr[-1] += cen_sfr
+                # find the SFH for this metallicity
+                pop_form = form_time[z_binner==i]
+                pop_mass = starimass[z_binner==i]
+                t_binner = np.digitize(pop_form, time_bins)
+                sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
+                sfr /= 1e9 # to Msun/yr
 
-            sp.set_tabular_sfh(time_avg, sfr)
-            wave, spec = sp.get_spectrum(tage=timenow)
-            spec_z[i] = spec
+                if inst:
+                    # Add instantaneous SFR from gas to last bin (i.e., now)
+                    # This requres using gas information
+                    gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
+                    gassfr = readhaloHDF5.readhalo(treebase, "snap", snapnum, "SFR ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
 
-        full_spec = np.nansum(spec_z, axis=0)
-        print("Rank",rank,"writing spectra_{:06d}.txt".format(sub)); sys.stdout.flush()
-        np.savetxt(folder+"spectra/{}inst/{}dust/spectra_{:06d}.txt".format(
-                                                            "no_" if not inst else "",
-                                                            "no_" if not dust else "",
-                                                            sub),
-                   np.vstack((wave, full_spec)))
+                    # make coords relative to the center of the subhalo in kpc
+                    gasx = periodic_centering(gasp[:,0], subpos0, boxsize) * a0/h_small
+                    gasy = periodic_centering(gasp[:,1], subpos1, boxsize) * a0/h_small
+                    gasz = periodic_centering(gasp[:,2], subpos2, boxsize) * a0/h_small
+                    gasd = np.sqrt(gasx**2 + gasy**2 + gasz**2)
+                    reg_gas = reg_func(gasd)
+
+                    cen_sfr = np.sum(gassfr[reg_gas])
+                    sfr[-1] += cen_sfr
+
+                sp.set_tabular_sfh(time_avg, sfr)
+                wave, spec = sp.get_spectrum(tage=timenow)
+                spec_z[i] = spec
+
+            full_spec = np.nansum(spec_z, axis=0)
+            print("Rank",rank,"writing spectra_{:06d}.txt".format(sub)); sys.stdout.flush()
+            np.savetxt(folder+"spectra/{}inst/{}dust/{}/spectra_{:06d}.txt".format(
+                                                     "no_" if not inst else "",
+                                                     "no_" if not dust else "",
+                                                     reg_name,
+                                                     sub),
+                       np.vstack((wave, full_spec)))
 
