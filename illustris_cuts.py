@@ -45,7 +45,7 @@ if rank == 0:
 #
 # Cut on $M_R < -19$
 #
-if not os.path.isfile(folder+"cut2_M_r_cut2_M_r_parent.pkl"):
+if not os.path.isfile(folder+"cut2_M_r_parent.pkl"):
    
     if rank == 0:
         # Re-get `cut1` with all desired subhalos so I don't have to paginate
@@ -80,15 +80,15 @@ if not os.path.isfile(folder+"cut2_M_r_cut2_M_r_parent.pkl"):
         for dic in cut2_M_r_lst:
             for k, v in dic.items():
                 cut2_M_r[k] = v
-        with open(folder+"cut2_M_r_cut2_M_r_parent.pkl", "wb") as f:
+        with open(folder+"cut2_M_r_parent.pkl", "wb") as f:
             pickle.dump(cut2_M_r, f)
     else:
         cut2_M_r = None
 else: # cut2_M_r dict already generated
     if rank == 0:
-        with open(folder+"cut2_M_r_cut2_M_r_parent.pkl","rb") as f:
+        with open(folder+"cut2_M_r_parent.pkl","rb") as f:
             cut2_M_r = pickle.load(f)
-        print(folder + "cut2_M_r_cut2_M_r_parent.pkl exists")
+        print(folder + "cut2_M_r_parent.pkl exists")
     else:
         cut2_M_r = None
 
