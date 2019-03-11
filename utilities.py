@@ -76,7 +76,7 @@ parser = argparse.ArgumentParser(
 parser.add_argument('z', type=float, choices=[0.0, 0.5], action="store",
                     help='Redshift; only 0.0 or 0.5 currently supported')
 
-parser.add_argument('--parent', action='store_true', dest='parent',
+parser.add_argument('-p','--parent', action='store_true', dest='parent',
                     help='Process parent sample')
 
 parser.add_argument('--no-inst', action='store_false', dest='inst_sfr',
@@ -88,11 +88,14 @@ parser.add_argument('--no-dust', action='store_false', dest='dusty',
 parser.add_argument('--tng', action='store_true', dest='tng',
                     help='Use Illustris TNG instead of original')
 
-parser.add_argument('--local', nargs='?', action='store', dest='local',
+parser.add_argument('-l','--local', nargs='?', action='store', dest='local',
                     metavar='DIR',
                     help='Use a local copy of the full snapshot, stored in the specified directory. Default depends on "--tng": /mnt/xfs1/home/sgenel/myceph/PUBLIC/[Illustris-1, IllustrisTNG100]',
                     const='/mnt/xfs1/home/sgenel/myceph/PUBLIC/',
                     default=None)
+
+parser.add_argument('-g','--gen-mocks', action='store_true', dest='mock',
+                    help='Generate mock magnitudes using FSPS spectra instead of using FITS from the Illustris team')
 
 args = parser.parse_args()
 

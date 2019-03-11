@@ -1,10 +1,11 @@
 import os
+import sys
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
 
-if args.local:
-    print("Using local snapshot data; do not download cutouts. Exiting...")
+if args.mock:
+    print("Generating own mock images; do not download fits. Exiting...")
     sys.exit()
 
 # convert log solar masses into group catalog units
