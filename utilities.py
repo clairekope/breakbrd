@@ -101,15 +101,21 @@ args = parser.parse_args()
 
 if not args.tng:
     
+    littleh = 0.704
+    omegaL = 0.7274
+    omegaM = 0.2726
+
     if args.local == '/mnt/xfs1/home/sgenel/myceph/PUBLIC/':
         args.local += 'Illustris-1/'
         
     url_dset = "http://www.illustris-project.org/api/Illustris-1/"
+
     if args.z==0.0:
-        url_sbhalos = url_dset + "snapshots/135/subhalos/"
+        snapnum = 135
         folder = 'z00/'
+
     elif args.z==0.5:
-        url_sbhalos = url_dset + "snapshots/103/subhalos/"
+        snapnum = 103
         folder = 'z05/'
 
 else:
@@ -118,6 +124,9 @@ else:
         args.local += 'IllustrisTNG100/'
         
     url_dset = "http://www.tng-project.org/api/TNG100-1/"
+
     if args.z==0.0:
-        url_sbhalos = url_dset + "snapshots/99/subhalos/"
+        snapnum = 99
         folder = 'z00_TNG/'
+
+url_sbhalos = url_dset + "snapshots/" + str(snapnum) + "/subhalos/"
