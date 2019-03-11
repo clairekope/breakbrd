@@ -88,9 +88,19 @@ parser.add_argument('--dusty', action='store_true', dest='dusty',
 parser.add_argument('--tng', action='store_true', dest='tng',
                     help='Use Illustris TNG instead of original')
 
+parser.add_argument('--local', nargs='?', action='store', dest='local',
+                    metavar='DIR',
+                    help='Use a local copy of the desired snapshot, stored in the specified directory. Default depends on "--tng": /mnt/xfs1/home/sgenel/myceph/PUBLIC/[Illustris-1, IllustrisTNG100]',
+                    const='/mnt/xfs1/home/sgenel/myceph/PUBLIC/',
+                    default=None)
+
 args = parser.parse_args()
 
 if not args.tng:
+    
+    if args.local == '/mnt/xfs1/home/sgenel/myceph/PUBLIC/':
+        args.local += 'Illustris-1/'
+        
     url_dset = "http://www.illustris-project.org/api/Illustris-1/"
     if args.z==0.0:
         url_sbhalos = url_dset + "snapshots/135/subhalos/"
@@ -100,8 +110,13 @@ if not args.tng:
         folder = 'z05/'
 
 else:
+    
+    if args.local == '/mnt/xfs1/home/sgenel/myceph/PUBLIC/':
+        args.local += 'IllustrisTNG100/'
+        
     url_dset = "http://www.tng-project.org/api/TNG100-1/"
     if args.z==0.0:
         url_sbhalos = url_dset + "snapshots/99/subhalos/"
         folder = 'z00_TNG/'
 
+print(args.local)
