@@ -12,20 +12,19 @@ As an example, let's read `cut2_M_r.pkl` into **Python 3**. Because these files 
 import pickle
 
 with open('cut2_M_r.pkl', 'rb') as f:
-  cut_M_r = pickle.load(f)
+  cut_M_r_parent = pickle.load(f)
 ```
 
 ### Prefixes
 
-cut1 would be the mass > 10^10 Msun cut but it is not saved to file
+cut1 is subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun and half mass radius &gt; 2 kpc, but is not saved to file. This cut is performed at the beginning of the prep scripts (`download_cutouts.py`, `download_fits.py`, `stellar_spectra.py`) and `illustris_cuts.py`.
 
 File Prefix | Cut
 ------------|----
-`cut2_M_r`    | M_r < -19
-`parent`      | M_r sans M_* > 10^12 Msun and half mass radius < 2 kpc
-`cut3_g-r`    | g-r > 0.655
-`cut4`        | "Investigative" cuts; sSFR, radial inversion, or both
-`cut_final`   | D4000 < 1.4 for dusty or dustless spectra (inst SFR included)
+`cut2_M_r_parent`  | M_r < -19
+`cut3_g-r`         | g-r > 0.655
+`cut4`             | "Investigative" cuts; sSFR, radial inversion, or both
+`cut_final`        | D4000 < 1.4 for dusty or dustless spectra (inst SFR included)
 
 The `d4000` files contain the D4000 measures for different types of spectra (those with and without dust, and those made with or without the inclusion of the instantaneous star formation rate)
 
