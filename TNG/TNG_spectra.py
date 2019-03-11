@@ -48,9 +48,9 @@ if rank == 0:
     # Get supplementary halo information
     rhalf_str = cat.SubhaloHalfmassRadType[:,4].copy()*1.0/h_small
     mgal_gas = cat.SubhaloMassType[:,0].copy() * 1.e10 / h_small  #intrinsic units is 10^10 Msun
-    pos0 = cat.SubhaloPos[:,0].copy() * 1.0 / h_small
-    pos1 = cat.SubhaloPos[:,1].copy() * 1.0 / h_small
-    pos2 = cat.SubhaloPos[:,2].copy() * 1.0 / h_small
+    pos0 = cat.SubhaloPos[:,0].copy() # these still need to be in code units for the centering process
+    pos1 = cat.SubhaloPos[:,1].copy()
+    pos2 = cat.SubhaloPos[:,2].copy()
     del cat
     gc.collect()
 
@@ -60,7 +60,6 @@ else:
     pos0 = None
     pos1 = None
     pos2 = None
-    sat = None
     mgal_str = None
     mgal_gas = None
     rhalf_str = None
@@ -70,12 +69,12 @@ halo_subset = scatter_work(sublist, rank, size, dtype=np.int64)
 pos0 = comm.bcast(pos0, root = 0)
 pos1 = comm.bcast(pos1, root = 0)
 pos2 = comm.bcast(pos2, root = 0)
-sat = comm.bcast(sat, root = 0)
 rhalf_str = comm.bcast(rhalf_str, root = 0)
 mgal_str = comm.bcast(mgal_str, root = 0)
 mgal_gas = comm.bcast(mgal_gas, root = 0)
 
 treebase = '/mnt/xfs1/home/sgenel/myceph/PUBLIC/IllustrisTNG100/'
+snapnum = 99
 
 boxsize = 75000.0
 z = 2.22044604925031e-16
@@ -109,8 +108,6 @@ for sub in halo_subset[good_ids]:
 
     # go through all the z=0 subhalos in the sample
     
-    snapnum = 99
-    
     rhalfstar = rhalf_str[sub]
     mtotstar = mgal_str[sub]
     mtotgas = mgal_gas[sub]
@@ -119,6 +116,7 @@ for sub in halo_subset[good_ids]:
     subpos2 = pos2[sub]
 
     readhaloHDF5.reset()
+#    if True:
     if rhalfstar > 2.0 and mtotgas > 0 and mtotstar > 0:
 
         starp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 4, -1, sub, long_ids=True, double_output=False).astype("float32") 
@@ -133,8 +131,9 @@ for sub in halo_subset[good_ids]:
         starx = periodic_centering(starp[:,0], subpos0, boxsize) * a0/h_small
         stary = periodic_centering(starp[:,1], subpos1, boxsize) * a0/h_small
         starz = periodic_centering(starp[:,2], subpos2, boxsize) * a0/h_small
+
         stard = np.sqrt(starx**2 + stary**2 + starz**2)
-        cen_stars = stard < 2.0
+        cen_stars = stard < 2.0 # no stars!
 
         starimass = starimass[stara > 0][cen_stars]*1.0e10/h_small
         starmetal = starmetal[stara > 0][cen_stars] / 0.0127 # double check Zsun

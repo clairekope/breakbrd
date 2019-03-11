@@ -7,9 +7,7 @@ __pycache__/
 *.tar.gz
 *.png
 *.pyc
-readsubfHDF5.py
 time_table_Illustris.dat
 spectra/
 *mergers/
 group_data/
-z=0/pipeline.slurm
