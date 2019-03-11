@@ -92,10 +92,16 @@ args = parser.parse_args()
 
 if not args.tng:
     url_dset = "http://www.illustris-project.org/api/Illustris-1/"
-    if args.z==0.5:
-        url_sbhalos = url_dset + "snapshots/103/subhalos/"
-        folder = 'z05/'
-    elif args.z==0.0:
+    if args.z==0.0:
         url_sbhalos = url_dset + "snapshots/135/subhalos/"
         folder = 'z00/'
+    elif args.z==0.5:
+        url_sbhalos = url_dset + "snapshots/103/subhalos/"
+        folder = 'z05/'
+
+else:
+    url_dset = "http://www.tng-project.org/api/TNG100-1/"
+    if args.z==0.0:
+        url_sbhalos = url_dset + "snapshots/99/subhalos/"
+        folder = 'z00_TNG/'
 

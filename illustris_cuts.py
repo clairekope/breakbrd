@@ -3,14 +3,14 @@ import os
 import sys
 import pickle
 import numpy as np
-from astropy.io import fits
-from astropy import units as u
-from astropy import constants as c
-from photutils import CircularAnnulus, aperture_photometry
 from copy import deepcopy
+
+# Functions for getting r-band mag of the halo and g-r color in the disk
+from get_magnitudes import *
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
+
 
 if rank == 0:
     z = args.z
@@ -19,9 +19,10 @@ else:
     a = None
 a = comm.bcast(a, root=0)
 
+
 #
 # How many galaxies total?
-# With stellar mocks?
+# With stellar mocks? (Mstar > 1e10 Msun)
 #
 if rank == 0:
 
@@ -67,31 +68,15 @@ if not os.path.isfile(folder+"cut2_M_r.pkl"):
 
     for sub_id in halo_subset[good_ids]:
 
-        file = folder+"illustris_fits/broadband_rest_{}{}.fits".format(
-                                    'rest_' if args.z!=0.0 else '', sub_id)
-        
-        # skip if not fetched    
-        if not os.path.isfile(file):
-            print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
-            continue
+        if args.tng:
+            pass
 
-        # analyze
-        print("Rank {} reading id {}".format(rank, sub_id)); sys.stdout.flush()
-        try:
-            abs_mag_r = np.array(fits.getdata(file, ext=13)[4][13:21:2])
-        except OSError:
-            continue
-
-        if (abs_mag_r < -19).any():
-            subhalo = get(url_sbhalos + str(sub_id))
-            my_cut2_M_r[sub_id] = {"M_r":abs_mag_r,
-                   "view":np.argmin(abs_mag_r),
-                   "half_mass_rad":subhalo["halfmassrad_stars"]*a/0.704, # ckpc/h to kpc
-                   "stellar_mass":subhalo['mass_stars']*1e10/0.704} 
-            
         else:
-            # delete subhalos that fail cut
-            os.remove(file)
+            try:
+                my_cut2_M_r[sub_id] = load_individual(sub_id)
+            except OSError:
+                print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
+                continue
 
     cut2_M_r_lst = comm.gather(my_cut2_M_r, root=0)
     if rank==0:
@@ -120,7 +105,6 @@ else:
     cut2_M_r_subhalos = None
     
     
-
 # 
 # Clean up M_r for parent sample
 #
@@ -156,51 +140,11 @@ if not os.path.isfile(folder+"cut3_g-r.pkl"):
     my_cut3_gr = {}
 
     for sub_id in halo_subset2[good_ids]:
-        file = folder+"illustris_fits/broadband_rest_{}{}.fits".format(
-                                    'rest_' if args.z!=0.0 else '', sub_id)
-        exten = 14 + cut2_M_r[sub_id]['view']
-        
-        # Prepare broadband images for magnitude calculation
-        hdr = fits.getheader(file, ext=exten)
-        unit = u.Unit(hdr['IMUNIT']) # spectral flux density
-        npix = hdr['NAXIS1'] # pixels per dim (square image)
-        pix_size = hdr['CD1_1'] * u.kpc
-        assert pix_size.value == hdr['CD2_2']
-        
-        r_to_nu = ((6201.4 * u.Angstrom).to(u.m))**2 / c.c # from per-lambda to per-nu
-        g_to_nu = ((4724.1 * u.Angstrom).to(u.m))**2 / c.c
-        
-        solid_ang = (pix_size)**2 / (10*u.pc)**2 # place object at 10 pc for abs mag
-        solid_ang = solid_ang.to(u.sr, equivalencies=u.dimensionless_angles())
-        
-        sdss_g = fits.getdata(file, ext=exten)[3] * unit
-        sdss_r = fits.getdata(file, ext=exten)[4] * unit
-        
-        sdss_g_mod = sdss_g * solid_ang * g_to_nu
-        sdss_r_mod = sdss_r * solid_ang * r_to_nu
-        
-        Jy = u.Unit("erg / s / Hz / cm**2") # astropy Jy cancels extra dims
-        f_zero = 3631e-23 * Jy # zero-point flux
-        
-        # Construct annulus for photometery
-        R_half = cut2_M_r[sub_id]['half_mass_rad']*u.kpc
-        center = (npix-1)/2
-        pos = (center, center)
-        rad_in = 2*u.kpc/pix_size
-        rad_out = 2*R_half/pix_size
-        ann = CircularAnnulus(pos, rad_in, rad_out)
-        
-        g_tot_flux = aperture_photometry(sdss_g_mod, ann)['aperture_sum'][0]
-        r_tot_flux = aperture_photometry(sdss_r_mod, ann)['aperture_sum'][0]
-        g_mag = -2.5*np.log10(g_tot_flux/f_zero)
-        r_mag = -2.5*np.log10(r_tot_flux/f_zero)
-        
-        if g_mag - r_mag > 0.655:
-            my_cut3_gr[sub_id] = {'g-r':g_mag-r_mag, 
-                               'view':cut2_M_r[sub_id]['view'],
-                               'half_mass_rad':cut2_M_r[sub_id]['half_mass_rad'],
-                               'M_r':cut2_M_r[sub_id]['M_r'],
-                               'stellar_mass':cut2_M_r[sub_id]['stellar_mass']}
+
+        if args.tng:
+            pass
+        else:
+            my_cut3_gr[sub_id] = gr_from_fits(sub_id, cut2_M_r)
 
     cut3_gr_lst = comm.gather(my_cut3_gr, root=0)
     if rank==0:
