@@ -17,10 +17,9 @@ with open('cut2_M_r.pkl', 'rb') as f:
 
 ### Prefixes
 
-cut1 is subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun and half mass radius &gt; 2 kpc, but is not saved to file. This cut is performed at the beginning of the prep scripts (`download_cutouts.py`, `download_fits.py`, `stellar_spectra.py`) and `illustris_cuts.py`.
-
 File Prefix | Cut
 ------------|----
+`cut1_mass_rad`    | 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc
 `cut2_M_r_parent`  | M_r < -19
 `cut3_g-r`         | g-r > 0.655
 `cut4`             | "Investigative" cuts; sSFR, radial inversion, or both

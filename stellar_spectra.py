@@ -52,13 +52,12 @@ if rank==0:
 
     sub_list = cut1['results']
 
+
+    # Need to load inst SFR!
+
 else:
     sub_list = None
-    if inst:
-        inst_sfr = {}
                                    
-if inst:
-    inst_sfr = comm.bcast(inst_sfr, root=0)
 my_subs = scatter_work(sub_list, rank, size)
 
 boxsize = get(url_dset)['boxsize']
