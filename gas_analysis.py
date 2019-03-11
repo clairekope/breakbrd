@@ -10,17 +10,21 @@ import matplotlib.pyplot as plt
 # CLI args container, url_dset, url_sbhalos, folder
 from utilities import * 
 
-do_parent = args.parent # now set by arg parser instead of editing file
 do_inst_cut = False     # "permanently" off
 
 if rank==0:
-    if not do_parent:
-        with open(folder+"cut3_g-r.pkl","rb") as f:
-            subs = pickle.load(f)
-    else:
-        with open(folder+"cut2_M_r_parent.pkl","rb") as f:
-            subs = pickle.load(f)
-    sub_list = np.array([k for k in subs.keys()])
+    # Get the halos to loop over. It is now "all" of them.
+    min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
+    max_mass = 100 * littleh # 1e12 Msun
+    search_query = "?mass_stars__gt=" + str(min_mass) \
+                 + "&mass_stars__lt=" + str(max_mass) \
+                 + "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
+
+    cut1 = get(url_sbhalos + search_query)
+    cut1['count']
+    cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
+
+    sub_list = cut1['results']
 
 else:
     subs = {}
@@ -52,29 +56,9 @@ for sub_id in my_subs[good_ids]:
     gas_file = folder+"gas_cutouts/cutout_{}.hdf5".format(sub_id)
     star_file = folder+"stellar_cutouts/cutout_{}.hdf5".format(sub_id)
 
-    # If needed, try to download gas particles
-    if not os.path.isfile(gas_file):
-        print("Rank", rank, "downloading gas",sub_id); sys.stdout.flush()
-        try:
-            get(url_sbhalos+ str(sub_id) + "/cutout.hdf5", gas_cutout,
-                folder+'gas_cutouts/')
-        except requests.exceptions.HTTPError:
-            print("Gas", sub_id, "not found"); sys.stdout.flush()
-            continue
-
-    # If needed, try to download star particles
-    if not os.path.isfile(star_file):
-        print("Rank", rank, "downloading star", sub_id); sys.stdout.flush()
-        try:
-            get(url_sbhalos+ str(sub_id) + "/cutout.hdf5", star_cutout, 
-                folder+'stellar_cutouts/')
-        except requests.exceptions.HTTPError:
-            print("Stars", sub_id, "not found"); sys.stdout.flush()
-            continue
-
     # Get half mass radius
     sub = get(url_sbhalos+str(sub_id))
-    r_half = subs[sub_id]['half_mass_rad']*u.kpc
+    r_half = subs[sub_id]['half_mass_rad'] * u.kpc * sf / littleh
 
     # Read particle data
     try:
@@ -100,11 +84,11 @@ for sub_id in my_subs[good_ids]:
     x = coords[:,0]
     y = coords[:,1]
     z = coords[:,2]
-    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * sf/0.704
-    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * sf/0.704
-    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * sf/0.704
+    x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * sf/littleh
+    y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * sf/littleh
+    z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * sf/littleh
     r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
-    mass = mass * 1e10 / 0.704 * u.Msun
+    mass = mass * 1e10 / littleh * u.Msun
     sfr = sfr * u.Msun/u.yr
     
     inner_region = r < 2*u.kpc
@@ -136,11 +120,11 @@ for sub_id in my_subs[good_ids]:
     sx = scoords[:,0]
     sy = scoords[:,1]
     sz = scoords[:,2]
-    sx_rel = periodic_centering(sx, sub['pos_x'], boxsize) * u.kpc * sf/0.704
-    sy_rel = periodic_centering(sy, sub['pos_y'], boxsize) * u.kpc * sf/0.704
-    sz_rel = periodic_centering(sz, sub['pos_z'], boxsize) * u.kpc * sf/0.704
+    sx_rel = periodic_centering(sx, sub['pos_x'], boxsize) * u.kpc * sf/littleh
+    sy_rel = periodic_centering(sy, sub['pos_y'], boxsize) * u.kpc * sf/littleh
+    sz_rel = periodic_centering(sz, sub['pos_z'], boxsize) * u.kpc * sf/littleh
     sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
-    smass = smass * 1e10 / 0.704 * u.Msun
+    smass = smass * 1e10 / littleh * u.Msun
 
     ssfr = inner_sfr / np.sum(smass[sr < 2*u.kpc]) 
     

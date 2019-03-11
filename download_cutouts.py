@@ -21,7 +21,7 @@ if rank==0:
     max_mass = 100 * littleh # 1e12 Msun
     search_query = "?mass_stars__gt=" + str(min_mass) \
                  + "&mass_stars__lt=" + str(max_mass) \
-                 + "&halfmassrad_stars__gt=" + str(2 / a * 0.704) # 2 kpc
+                 + "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
 
     cut1 = get(url_sbhalos + search_query)
     cut1['count']
