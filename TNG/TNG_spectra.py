@@ -117,6 +117,11 @@ for sub in halo_subset[good_ids]:
 
     readhaloHDF5.reset()
 
+    # redefine for every halo because rhalfstar changes
+    regions = {'inner': lambda r: r < 2.0,
+               'disk': lambda r: np.logical_and(2.0 < r, r < 2*rhalfstar),
+               'full': lambda r: np.ones(r.shape, dtype=bool)}
+
     if rhalfstar > 2.0 and mtotgas > 0 and mtotstar > 0:
 
         starp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 4, -1, sub, long_ids=True, double_output=False).astype("float32") 
@@ -134,25 +139,32 @@ for sub in halo_subset[good_ids]:
 
         stard = np.sqrt(starx**2 + stary**2 + starz**2)
 
-
-        regions = {'inner': lambda r: r < 2.0,
-                   'disk': lambda r: np.logical_and(2.0 < r, r < 2*rhalfstar)
-                   'full': lambda r: r
+        if inst:
+            # Add instantaneous SFR from gas to last bin (i.e., now)
+            # This requres using gas information
+            gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
+            gassfr = readhaloHDF5.readhalo(treebase, "snap", snapnum, "SFR ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
+            
+            # make coords relative to the center of the subhalo in kpc
+            gasx = periodic_centering(gasp[:,0], subpos0, boxsize) * a0/h_small
+            gasy = periodic_centering(gasp[:,1], subpos1, boxsize) * a0/h_small
+            gasz = periodic_centering(gasp[:,2], subpos2, boxsize) * a0/h_small
+            gasd = np.sqrt(gasx**2 + gasy**2 + gasz**2)
 
         for reg_name, reg_func in regions.items():
 
             reg_stars = reg_func(stard)
 
-            starimass = starimass[stara > 0][reg_stars]*1.0e10/h_small
-            starmetal = starmetal[stara > 0][reg_stars] / 0.0127 # double check Zsun
-            stara = stara[stara > 0][reg_stars]
+            starimass_r = starimass[stara > 0][reg_stars]*1.0e10/h_small
+            starmetal_r = starmetal[stara > 0][reg_stars] / 0.0127 # double check Zsun
+            stara_r = stara[stara > 0][reg_stars]
 
             form_time = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
-                        * np.log(np.sqrt(omegaL*1./omegaM*(stara)**3) \
-                        + np.sqrt(omegaL*1./omegaM*(stara)**3+1)) \
+                        * np.log(np.sqrt(omegaL*1./omegaM*(stara_r)**3) \
+                        + np.sqrt(omegaL*1./omegaM*(stara_r)**3+1)) \
                         * 3.08568e19/3.15576e16
 
-            z_binner = np.digitize(np.log10(starmetal), met_bins)
+            z_binner = np.digitize(np.log10(starmetal_r), met_bins)
 
             # one row for each different metallicity's spectrum
             spec_z = np.zeros((met_center_bins.size+1, 5994)) 
@@ -162,26 +174,15 @@ for sub in halo_subset[good_ids]:
 
                 # find the SFH for this metallicity
                 pop_form = form_time[z_binner==i]
-                pop_mass = starimass[z_binner==i]
+                pop_mass = starimass_r[z_binner==i]
                 t_binner = np.digitize(pop_form, time_bins)
                 sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
                 sfr /= 1e9 # to Msun/yr
 
                 if inst:
-                    # Add instantaneous SFR from gas to last bin (i.e., now)
-                    # This requres using gas information
-                    gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
-                    gassfr = readhaloHDF5.readhalo(treebase, "snap", snapnum, "SFR ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
-
-                    # make coords relative to the center of the subhalo in kpc
-                    gasx = periodic_centering(gasp[:,0], subpos0, boxsize) * a0/h_small
-                    gasy = periodic_centering(gasp[:,1], subpos1, boxsize) * a0/h_small
-                    gasz = periodic_centering(gasp[:,2], subpos2, boxsize) * a0/h_small
-                    gasd = np.sqrt(gasx**2 + gasy**2 + gasz**2)
                     reg_gas = reg_func(gasd)
-
-                    cen_sfr = np.sum(gassfr[reg_gas])
-                    sfr[-1] += cen_sfr
+                    reg_sfr = np.sum(gassfr[reg_gas])
+                    sfr[-1] += reg_sfr
 
                 sp.set_tabular_sfh(time_avg, sfr)
                 wave, spec = sp.get_spectrum(tage=timenow)
