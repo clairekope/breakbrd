@@ -8,7 +8,7 @@ from copy import deepcopy
 # Functions for getting r-band mag of the halo and g-r color in the disk
 from get_magnitudes import *
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
-# CLI args container, url_dset, url_sbhalos, folder
+# CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import *
 
 
@@ -19,27 +19,23 @@ else:
     a = None
 a = comm.bcast(a, root=0)
 
-
 #
-# How many galaxies total?
-# With stellar mocks? (Mstar > 1e10 Msun)
+# Get galaxies with 1e10 Msun < stellar mass < 1e12 Msun
 #
 if rank == 0:
 
     total = get(url_sbhalos)
     print("Total subhalos:",total['count'])
 
-    #
-    # Get galaxies with stellar mass > min_mass
-    #
     # Only subhalos (galaxies) with $M_*>10^{10}$ have stellar mocks 
     #([source](http://www.illustris-project.org/data/docs/specifications/#sec4a))
     
     # convert log solar masses into group catalog units
-    min_mass = 0.704 # 1e10/1e10 * 0.704
-    
-    # form query
-    search_query = "?mass_stars__gt=" + str(min_mass)
+    min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
+    max_mass = 100 * littleh # 1e12 Msun 
+    search_query = "?mass_stars__gt=" + str(min_mass) \
+                 + "&mass_stars__lt=" + str(max_mass) \
+                 + "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
     
     cut1 = get(url_sbhalos + search_query)
     scatter_total = cut1['count']
@@ -49,7 +45,7 @@ if rank == 0:
 #
 # Cut on $M_R < -19$
 #
-if not os.path.isfile(folder+"cut2_M_r.pkl"):
+if not os.path.isfile(folder+"cut2_M_r_parent.pkl"):
    
     if rank == 0:
         # Re-get `cut1` with all desired subhalos so I don't have to paginate
@@ -68,12 +64,12 @@ if not os.path.isfile(folder+"cut2_M_r.pkl"):
 
     for sub_id in halo_subset[good_ids]:
 
-        if args.tng:
-            pass
+        if args.local:
+            my_cut2_M_r[sub_id] = rmag_from_spectra(sub_id)
 
         else:
             try:
-                my_cut2_M_r[sub_id] = load_individual(sub_id)
+                my_cut2_M_r[sub_id] = rmag_from_fits(sub_id)
             except OSError:
                 print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
                 continue
@@ -84,15 +80,15 @@ if not os.path.isfile(folder+"cut2_M_r.pkl"):
         for dic in cut2_M_r_lst:
             for k, v in dic.items():
                 cut2_M_r[k] = v
-        with open(folder+"cut2_M_r.pkl", "wb") as f:
+        with open(folder+"cut2_M_r_parent.pkl", "wb") as f:
             pickle.dump(cut2_M_r, f)
     else:
         cut2_M_r = None
 else: # cut2_M_r dict already generated
     if rank == 0:
-        with open(folder+"cut2_M_r.pkl","rb") as f:
+        with open(folder+"cut2_M_r_parent.pkl","rb") as f:
             cut2_M_r = pickle.load(f)
-        print(folder + "cut2_M_r.pkl exists")
+        print(folder + "cut2_M_r_parent.pkl exists")
     else:
         cut2_M_r = None
 
@@ -102,31 +98,7 @@ if rank == 0:
     print("Galaxies from M_r cut:",len(cut2_M_r))
     cut2_M_r_subhalos = np.array([k for k in cut2_M_r.keys()])
 else:
-    cut2_M_r_subhalos = None
-    
-    
-# 
-# Clean up M_r for parent sample
-#
-if rank==0:
-
-    cut2_M_r_new = {}
-
-    for sub_id in cut2_M_r.keys():
-        if cut2_M_r[sub_id]['stellar_mass'] < 1e12 and cut2_M_r[sub_id]['half_mass_rad'] > 2:
-            cut2_M_r_new[sub_id] = cut2_M_r[sub_id]
-
-    with open(folder+"parent.pkl","wb") as f:
-        pickle.dump(cut2_M_r_new, f)
-else:
-    cut2_M_r_new = None
-
-#cut2_M_r_new = comm.bcast(cut2_M_r_new, root=0)
-if rank == 0:
-    print("Galaxies from cleaning cut:",len(cut2_M_r_new))
-    cut2_M_r_subhalos = np.array([k for k in cut2_M_r_new.keys()])
-else:
-    cut2_M_r_subhalos = None    
+    cut2_M_r_subhalos = None  
 
 
 #
@@ -141,8 +113,8 @@ if not os.path.isfile(folder+"cut3_g-r.pkl"):
 
     for sub_id in halo_subset2[good_ids]:
 
-        if args.tng:
-            pass
+        if args.local:
+            my_cut3_gr[sub_id] = gr_from_spectra(sub_id, cut2_M_r)
         else:
             my_cut3_gr[sub_id] = gr_from_fits(sub_id, cut2_M_r)
 

@@ -19,7 +19,7 @@ if rank==0:
         with open(folder+"cut3_g-r.pkl","rb") as f:
             subs = pickle.load(f)
     else:
-        with open(folder+"parent.pkl","rb") as f:
+        with open(folder+"cut2_M_r_parent.pkl","rb") as f:
             subs = pickle.load(f)
     sub_list = np.array([k for k in subs.keys()])
     if use_inst:

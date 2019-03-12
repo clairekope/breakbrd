@@ -76,32 +76,57 @@ parser = argparse.ArgumentParser(
 parser.add_argument('z', type=float, choices=[0.0, 0.5], action="store",
                     help='Redshift; only 0.0 or 0.5 currently supported')
 
-parser.add_argument('--parent', action='store_true', dest='parent',
-                    help='Process parent sample')
+#parser.add_argument('-p','--parent', action='store_true', dest='parent',
+#                    help='Process parent sample')
 
-parser.add_argument('--inst', action='store_true', dest='inst_sfr',
-                    help='Include instantaneous SFR')
+parser.add_argument('--no-inst', action='store_false', dest='inst_sfr',
+                    help='Exclude instantaneous SFR')
 
-parser.add_argument('--dusty', action='store_true', dest='dusty',
-                    help='Include dust in spectra')
+parser.add_argument('--no-dust', action='store_false', dest='dusty',
+                    help='Exclude dust from spectra')
 
 parser.add_argument('--tng', action='store_true', dest='tng',
                     help='Use Illustris TNG instead of original')
 
+parser.add_argument('-l','--local', nargs='?', action='store', dest='local',
+                    metavar='DIR',
+                    help='Use a local copy of the full snapshot, stored in the specified directory. Default depends on "--tng": /mnt/xfs1/home/sgenel/myceph/PUBLIC/[Illustris-1, IllustrisTNG100]',
+                    const='/mnt/xfs1/home/sgenel/myceph/PUBLIC/',
+                    default=None)
+
+parser.add_argument('-m','--gen-mocks', action='store_true', dest='mock',
+                    help='Generate mock magnitudes using FSPS spectra instead of using FITS from the Illustris team')
+
 args = parser.parse_args()
 
 if not args.tng:
+    
+    littleh = 0.704
+    omegaL = 0.7274
+    omegaM = 0.2726
+
+    if args.local == '/mnt/xfs1/home/sgenel/myceph/PUBLIC/':
+        args.local += 'Illustris-1/'
+        
     url_dset = "http://www.illustris-project.org/api/Illustris-1/"
+
     if args.z==0.0:
-        url_sbhalos = url_dset + "snapshots/135/subhalos/"
+        snapnum = 135
         folder = 'z00/'
+
     elif args.z==0.5:
-        url_sbhalos = url_dset + "snapshots/103/subhalos/"
+        snapnum = 103
         folder = 'z05/'
 
 else:
+    
+    if args.local == '/mnt/xfs1/home/sgenel/myceph/PUBLIC/':
+        args.local += 'IllustrisTNG100/'
+        
     url_dset = "http://www.tng-project.org/api/TNG100-1/"
+
     if args.z==0.0:
-        url_sbhalos = url_dset + "snapshots/99/subhalos/"
+        snapnum = 99
         folder = 'z00_TNG/'
 
+url_sbhalos = url_dset + "snapshots/" + str(snapnum) + "/subhalos/"
