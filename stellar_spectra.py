@@ -16,7 +16,6 @@ from glob import glob
 
 inst = args.inst_sfr
 dust = args.dusty
-parent = args.parent
 more_regions = args.mocks # if making our own mocks, do things a bit differently
 
 

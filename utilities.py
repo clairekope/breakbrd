@@ -76,8 +76,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument('z', type=float, choices=[0.0, 0.5], action="store",
                     help='Redshift; only 0.0 or 0.5 currently supported')
 
-parser.add_argument('-p','--parent', action='store_true', dest='parent',
-                    help='Process parent sample')
+#parser.add_argument('-p','--parent', action='store_true', dest='parent',
+#                    help='Process parent sample')
 
 parser.add_argument('--no-inst', action='store_false', dest='inst_sfr',
                     help='Exclude instantaneous SFR')
@@ -94,7 +94,7 @@ parser.add_argument('-l','--local', nargs='?', action='store', dest='local',
                     const='/mnt/xfs1/home/sgenel/myceph/PUBLIC/',
                     default=None)
 
-parser.add_argument('-g','--gen-mocks', action='store_true', dest='mock',
+parser.add_argument('-m','--gen-mocks', action='store_true', dest='mock',
                     help='Generate mock magnitudes using FSPS spectra instead of using FITS from the Illustris team')
 
 args = parser.parse_args()

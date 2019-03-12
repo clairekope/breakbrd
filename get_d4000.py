@@ -6,7 +6,6 @@ from utilities import folder, args
 
 inst = args.inst_sfr
 dust = args.dusty
-parent = args.parent
 
 def get_dn4000(wave,spec):
     interp_spec = interp1d(wave,spec)
@@ -16,8 +15,7 @@ def get_dn4000(wave,spec):
 
     return d4000
 
-files = glob.glob(folder+"spectra/{}/{}inst/{}dust/spectra_*.txt".format(
-                             "parent" if parent else "g-r",
+files = glob.glob(folder+"spectra/{}inst/{}dust/inner/spectra_*.txt".format(
                              "" if inst else "no_",
                              "" if dust else "no_"))
 d4000 = {}
