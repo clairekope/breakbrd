@@ -1,10 +1,11 @@
 import numpy as np
+from scipy.interpolate import interp1d
 from astropy.io import fits
 from astropy import units as u
 from astropy import constants as c
 from photutils import CircularAnnulus, aperture_photometry
 
-from utilities import get, url_sbhalos, args
+from utilities import get, url_sbhalos, args, littleh
 
 #
 # Functions for getting information from FITs files
@@ -23,9 +24,9 @@ def rmag_from_fits(sub_id):
     if (abs_mag_r < -19).any():
         subhalo = get(url_sbhalos + str(sub_id))
         return {"M_r":abs_mag_r,
-               "view":np.argmin(abs_mag_r),
-               "half_mass_rad":subhalo["halfmassrad_stars"]*a/0.704, # ckpc/h to kpc
-               "stellar_mass":subhalo['mass_stars']*1e10/0.704} 
+                "view":np.argmin(abs_mag_r),
+                "half_mass_rad":subhalo["halfmassrad_stars"]*a/littleh, # ckpc/h to kpc
+                "stellar_mass":subhalo['mass_stars']*1e10/littleh}
     else:
         # delete subhalos that fail cut
         os.remove(file)
@@ -82,26 +83,85 @@ def gr_from_fits(sub_id, cut2_dict):
 #
 # Functions for getting information from spectra
 #
+pc2cm   = (u.pc).to(u.cm)
+lsun    = (u.solLum).to(u.erg/u.s)
+mag2cgs = np.log10(lsun/4.0/np.pi/(pc2cm*pc2cm)/100.0)
+
+def tsum(xin, yin):
+
+    tsum = np.sum(np.abs((xin[1:]-xin[:-1]))*(yin[1:]+yin[:-1])/2. )
+
+    return tsum
+
+def band_mag(wave, spectrum, transmission_file):
+
+    #load transmission function
+    through = np.genfromtxt(transmission_file, skipheader = 1)
+
+    #I only want the magnitude if the spectrum covers the band
+    if np.min(wave) <= np.min(through[:,0]) \
+       and np.max(wave) >= np.max(through[:,0]):
+
+        # select the right part of the wavelengths
+        bandw = np.logical_and(wave >= np.min(through[:,0]), 
+                                 wave <= np.amax(through[:,0]))
+
+        # interpolate the transmission function
+        interp_band = interp1d(through[:,0],through[:,1])
+        
+        # the actual transmission for the spectrum
+        trans = interp_band(wave[bandw]) \
+                * 1.0/tsum(wave[bandw], interp_band(wave[bandw]) \
+                * 1.0/wave[bandw])
+
+        # calculate the magnitude by integrating the spectrum times the
+        # transmission over the right wavelength range 
+        # and convert to the right units
+        mag = -2.5*np.log10( tsum(wave[bandw],
+                                   spec[bandw]*trans*1.0/wave[bandw]
+                            )) - 48.60 - 2.5*mag2cgs
+    else:
+        mag = 0
+
+    return mag
 
 def rmag_from_spectra(sub_id):
 
-    # need wave and spec
+    # Use spectra made from whole subhalo
+    file = "spectra/{}inst/{}dust/full/spectra_{}.txt".format(
+                             "" if args.inst_sfr else "no_",
+                             "" if args.dusty else "no_")
 
-    #load transmission function
-    SDSS_r_through = np.asarray(np.loadtxt(datafolder+'SDSS_r_transmission.txt', skiprows = 1))
+    dat = np.genfromtxt(file)
+    wave = dat[0,:]
+    spec = dat[1,:]
 
-    #I only want the magnitude if the spectrum covers the band
-    if np.min(wave) <= np.min(SDSS_r_through[:,0]) and np.max(wave) >= np.max(SDSS_r_through[:,0]):
+    r_mag = band_mag(wave, spec, 'SDSS_r_transmission.txt')
 
-        # select the right part of the wavelengths
-        bandw_r = np.logical_and(wave >= np.amin(SDSS_r_through[:,0]), wave <= np.amax(SDSS_r_through[:,0]))
-        # interpolate the transmission function
-        interp_band_r = interp.interp1d(SDSS_r_through[:,0],SDSS_r_through[:,1])
-        # the actual transmission for the spectrum
-        trans_r = interp_band_r(wave[bandw_r])*1.0/tsum(wave[bandw_r],interp_band_r(wave[bandw_r])*1.0/wave[bandw_r])
-        # calculate the magnitude by integrating the spectrum times the transmission over the right wavelength range and convert to the right units
-        magr = -2.5*np.log10(tsum(wave[bandw_r],spec[bandw_r]*trans_r*1.0/wave[bandw_r])) - 48.60 - 2.5*mag2cgs
-    else:
-        magr = 0
-    return magr
+    if r_mag < -19:
+        subhalo = get(url_sbhalos + str(sub_id))
+        return {"M_r":abs_mag_r,
+               "view":np.argmin(abs_mag_r),
+               "half_mass_rad":subhalo["halfmassrad_stars"]*a/littleh, # ckpc/h to kpc
+               "stellar_mass":subhalo['mass_stars']*1e10/littleh}
+
+def gr_from_spectra(sub_id, cut2_dict):
+    
+    # Use spectra made only from "disk"
+    file = "spectra/{}inst/{}dust/disk/spectra_{}.txt".format(
+                             "" if args.inst_sfr else "no_",
+                             "" if args.dusty else "no_")
+
+    dat = np.genfromtxt(file)
+    wave = dat[0,:]
+    spec = dat[1,:]
+
+    r_mag = band_mag(wave, spec, 'SDSS_r_transmission.txt')
+    g_mag = band_mag(wave, spec, 'SDSS_g_transmission.txt')
+
+    if g_mag - r_mag > 0.655:
+        return {'g-r':g_mag-r_mag, 
+                 'half_mass_rad':cut2_dict[sub_id]['half_mass_rad'],
+                 'M_r':cut2_dict[sub_id]['M_r'],
+                 'stellar_mass':cut2_dict[sub_id]['stellar_mass']}
 
