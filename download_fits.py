@@ -14,7 +14,7 @@ a = 1/(1+args.z)
 min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
 max_mass = 100 * littleh # 1e12 Msun 
 search_query = "?mass_stars__gt=" + str(min_mass) \
-             + "&mass_stars__lt=" + str(max_mass) #\
+             + "&mass_stars__lt=" + str(max_mass) \
              + "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
 
 # get galaxies with min_mass < mass < max_mass
@@ -38,4 +38,4 @@ for subhalo in cut1['results']:
     except requests.HTTPError:
         print("Subhalo {} not found".format(sub_id))
   else:
-    print("Subhalo {} exits".format(sub_id))
+    print("Subhalo {} exists".format(sub_id))
