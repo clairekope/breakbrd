@@ -27,15 +27,22 @@ if not os.path.isdir(folder+"illustris_fits"):
 
 for subhalo in cut1['results']:
 
-  sub_id = subhalo['id']
+    sub_id = subhalo['id']
 
-  if not os.path.isfile(folder + "illustris_fits/broadband_{}{}.fits".format(
+    if not os.path.isfile(folder + "illustris_fits/broadband_{}{}.fits".format(
                                     'rest_' if args.z!=0.0 else '', sub_id) ):
-    rband_url = url_sbhalos + str(sub_id) + "/stellar_mocks/broadband.fits"
-    print("Downloading subhalo {}".format(sub_id))
-    try:
-        get(rband_url, fpath = folder+"illustris_fits/")
-    except requests.HTTPError:
-        print("Subhalo {} not found".format(sub_id))
-  else:
-    print("Subhalo {} exists".format(sub_id))
+
+        if args.tng:
+            rband_url = url_sbhalos + str(sub_id) + "/skirt/broadband_sdss.fits"
+        else:
+            rband_url = url_sbhalos + str(sub_id) + "/stellar_mocks/broadband.fits"
+
+        print("Downloading subhalo {}".format(sub_id))
+    
+        try:
+            get(rband_url, fpath = folder+"illustris_fits/")
+        except requests.HTTPError:
+            print("Subhalo {} not found".format(sub_id))
+
+    else:
+        print("Subhalo {} exists".format(sub_id))
