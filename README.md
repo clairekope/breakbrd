@@ -6,54 +6,45 @@ Every `.pkl` file contains a dictionary of dictionaries. For the first level, th
 
 ### Reading a File
 
-As an example, let's read `cut2_M_r.pkl` into **Python 3**. Because these files were created using Python 3, they must be read using Python 3.
+As an example, let's read `cut2_M_r_parent.pkl` into **Python 3**. Because these files were created using Python 3, they must be read using Python 3.
 
 ```python3
 import pickle
 
-with open('cut2_M_r.pkl', 'rb') as f:
+with open('cut2_M_r_parent.pkl', 'rb') as f:
   cut_M_r_parent = pickle.load(f)
 ```
 
-### Prefixes
+### Cut Definitions
 
-File Prefix | Cut
+Filename | Cut
 ------------|----
-`cut1_mass_rad`    | 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc
-`cut2_M_r_parent`  | M_r < -19
-`cut3_g-r`         | g-r > 0.655
-`cut4`             | "Investigative" cuts; sSFR, radial inversion, or both
-`cut_final`        | D4000 < 1.4 for dusty or dustless spectra (inst SFR included)
+`cut1_particle_info.pkl`    | 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc
+`cut2_M_r_parent.pkl`       | M_r < -19
+`cut3_g-r.pkl`              | g-r > 0.655
 
-The `d4000` files contain the D4000 measures for different types of spectra (those with and without dust, and those made with or without the inclusion of the instantaneous star formation rate)
-
-`cut_final.pkl.orig` is used by my (untracked) Jupyter Notebooks to make sure any changes to the `.pkl` files don't change the final dusty D4000 cut.
 
 ### File Contents
-#### Cut Files
-- `M_r`:  Array of M_r for all camera views
-- `view`: Camera view with brightest M_r
-- `half_mass_rad`: Stellar half mass radius in kpc
-- `stellar_mass`: Stellar mass in Msun
-- `g-r`: If cut > 2, g-r in the "disk" (Astropy quantity)
-- `inner_sSFR_50Myr`/`100Myr`/`1Gyr`: If cut > 3, the inner (r < 2 kpc) time-averaged sSFR. Present in `cut4_radii.pkl` for subhalos that overlap with `cut4_ssfr.pkl`, for some reason?
-
-#### `_gas_info.pkl`
-All of these are Astropy quantities, and have units attached
+#### `cut1_particle_info.pkl`
+All of these are Astropy quantities, and have units attached. **PLEASE UPDATE**
 
 - `total_SFR`: Instantaneous SFR for whole galaxy in Msun/yr
 - `total_gas`: Total gas mass in Msun
 - `total_sfe`: Instantaneous star formation efficiency for whole galaxy in 1/yr
 - `inner_SFR`: Instantaneous SFR for r < 2 kpc in Msun/yr
-- `inner_sSFR`: Instantaneous sSFR for r < 2 kpc in 1/yr
 - `inner_gas`: Gas mass for r < 2 kpc in Msun
 - `inner_sfe`: Instantaneous star formation efficiency for r < 2 kpc in 1/yr
 - `mid_sfe`: As above, for 2 kpc < r < 1 half mass radius
 - `far_sfe`: As above, for 1-2 half mass radii
 - `outer_sfe`: As above, for r > 2 half mass radii
 
-#### `cut3_ssfr.pkl`
-This one is *not* a dictionary of dictionaries. Instead, each subhalo ID key returns the 1 Gyr averaged sSFR for that subhalo. Used for plotting sSFR of the g-r sample.
+#### Cuts w/ n > 1
+- `M_r`:  Array of M_r for all camera views
+- `view`: Camera view with brightest M_r
+- `half_mass_rad`: Stellar half mass radius in kpc
+- `stellar_mass`: Stellar mass in Msun
+- `g-r`: If cut > 2, g-r in the "disk" (Astropy quantity)
+- `inner_sSFR_50Myr`/`100Myr`/`1Gyr`: If cut > 3, the inner (r < 2 kpc) time-averaged sSFR. Present in `cut4_radii.pkl` for subhalos that overlap with `cut4_ssfr.pkl`, for some reason?
 
 
 ## Python Scripts

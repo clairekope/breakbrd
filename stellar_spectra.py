@@ -52,7 +52,7 @@ if rank==0:
     sub_list = cut1['results']
 
 
-    # Need to load inst SFR!
+    # !! Need to load inst SFR!
 
 else:
     sub_list = None
@@ -90,19 +90,16 @@ regions = {'inner': lambda r: r < 2.0}
 
 for sub_id in my_subs[good_ids]:
 
-    if inst:
-        if sub_id not in inst_sfr: # it doesnt have gas!
-            continue
-
     sub = get(url_sbhalos + str(sub_id))
 
-    rhalfstar = ["halfmassrad_stars"]*a0/littleh
-    if rhalfstar < 2.0: # only vital for args.mocks==True
+    rhalfstar = ["halfmassrad_stars"] * u.kpc * a0/littleh
+    if rhalfstar < 2.0:
+        # only vital for args.mocks==True
         continue 
 
     if more_regions: # rhalfstar redefined every halo
         regions['disk'] = lambda r: np.logical_and(2.0 < r, r < 2*rhalfstar)
-        regions['full'] = lambda r: r
+        regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
 
     # If we downloaded the cutouts, load the one for our subhalo
     if not args.local:
@@ -172,6 +169,7 @@ for sub_id in my_subs[good_ids]:
             sfr /= 1e9 # to Msun/yr
 
             if inst:
+                # !!
                 # Add instantaneous SFR from gas to last bin (i.e., now)
                 sfr[-1] += inst_sfr[sub_id]['inner_SFR'].value # Msun/yr
 
