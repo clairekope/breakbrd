@@ -51,8 +51,9 @@ if rank==0:
 
     sub_list = cut1['results']
 
-
-    # !! Need to load inst SFR!
+    if inst:
+        with open(folder+"cut1_particle_info.pkl","rb") as f:
+            part_data = pickle.load(f)
 
 else:
     sub_list = None
@@ -169,9 +170,8 @@ for sub_id in my_subs[good_ids]:
             sfr /= 1e9 # to Msun/yr
 
             if inst:
-                # !!
                 # Add instantaneous SFR from gas to last bin (i.e., now)
-                sfr[-1] += inst_sfr[sub_id]['inner_SFR'].value # Msun/yr
+                sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
 
             sp.set_tabular_sfh(time_avg, sfr)
             wave, spec = sp.get_spectrum(tage=timenow.value)
