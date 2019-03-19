@@ -119,6 +119,10 @@ if not args.tng:
         folder = 'z05/'
 
 else:
+
+    littleh = 0.6774
+    omegaM = 0.2726
+    omegaL = 0.6911
     
     if args.local == '/mnt/xfs1/home/sgenel/myceph/PUBLIC/':
         args.local += 'IllustrisTNG100/'

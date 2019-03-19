@@ -18,9 +18,9 @@ def get_dn4000(wave,spec):
 files = glob.glob(folder+"spectra/{}inst/{}dust/inner/spectra_*.txt".format(
                              "" if inst else "no_",
                              "" if dust else "no_"))
-d4000 = {}
+d4000 = np.zeros( (len(files),2) )
 
-for f in files:
+for i, f in enumerate(files):
 
     sub_id = int(f[-10:-4])
     dat = np.genfromtxt(f)
@@ -28,22 +28,10 @@ for f in files:
     wave = dat[0,:]
     spec = dat[1,:]
 
-    d4000[sub_id] = get_dn4000(wave, spec)
+    d4000[i] = sub_id, get_dn4000(wave, spec)
 
-with open(folder+"d4000_{}{}dust{}.pkl".format("parent_" if parent else "",
-                                               "" if dust else "no_",
-                                               "" if inst else "_no_inst"
-                                           ), "wb") as pkl:
-    pickle.dump(d4000, pkl)
+np.savetxt(folder+"D4000_{}{}dust.csv".format(
+                             "" if inst else "no_inst_",
+                             "" if dust else "no_"),
+           d4000, fmt="%d %g", header='Sub ID, D4000', delimiter=',')
 
-# Do D4000 cut
-with open(folder+"cut2_M_r_parent.pkl","rb") as f:
-    parent = pickle.load(f)
-with open(folder+"parent_gas_info.pkl","rb") as f:
-    parent_gas = pickle.load(f)
-
-final = {k:{**parent_gas[k], **parent[k]} for k in d4000.keys() if d4000[k]<1.4}
-with open(folder+"cut_final_{}{}{}.pkl".format("parent_" if parent else "",
-                                               "dusty" if dust else "dustless",
-                                               "_no_inst" if not inst else ""), "wb") as f:
-    pickle.dump(final, f)

@@ -35,6 +35,7 @@ if rank == 0:
     max_mass = 100 * littleh # 1e12 Msun 
     search_query = "?mass_stars__gt=" + str(min_mass) \
                  + "&mass_stars__lt=" + str(max_mass) \
+                 + "&mass_gas__gt=0.0" \
                  + "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
     
     cut1 = get(url_sbhalos + search_query)
@@ -65,7 +66,11 @@ if not os.path.isfile(folder+"cut2_M_r_parent.pkl"):
     for sub_id in halo_subset[good_ids]:
 
         if args.local:
-            rmag = rmag_from_spectra(sub_id)
+            try:
+                rmag = rmag_from_spectra(sub_id)
+            except OSError:
+                print(sub_id)
+                continue
             if rmag < -19:
                 subhalo = get(url_sbhalos + str(sub_id))
                 my_cut2_M_r[sub_id] = {"M_r":rmag,

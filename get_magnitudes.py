@@ -83,10 +83,10 @@ def tsum(xin, yin):
 
     return tsum
 
-def band_mag(wave, spectrum, transmission_file):
+def band_mag(wave, spec, transmission_file):
 
     #load transmission function
-    through = np.genfromtxt(transmission_file, skipheader = 1)
+    through = np.genfromtxt(transmission_file, skip_header = 1)
 
     #I only want the magnitude if the spectrum covers the band
     if np.min(wave) <= np.min(through[:,0]) \
@@ -118,9 +118,10 @@ def band_mag(wave, spectrum, transmission_file):
 def rmag_from_spectra(sub_id):
 
     # Use spectra made from whole subhalo
-    file = "spectra/{}inst/{}dust/full/spectra_{}.txt".format(
+    file = folder+"spectra/{}inst/{}dust/full/spectra_{:06d}.txt".format(
                              "" if args.inst_sfr else "no_",
-                             "" if args.dusty else "no_")
+                             "" if args.dusty else "no_",
+                             sub_id)
 
     dat = np.genfromtxt(file)
     wave = dat[0,:]
@@ -133,9 +134,10 @@ def rmag_from_spectra(sub_id):
 def gr_from_spectra(sub_id):
     
     # Use spectra made only from "disk"
-    file = "spectra/{}inst/{}dust/disk/spectra_{}.txt".format(
+    file = folder+"spectra/{}inst/{}dust/disk/spectra_{:06d}.txt".format(
                              "" if args.inst_sfr else "no_",
-                             "" if args.dusty else "no_")
+                             "" if args.dusty else "no_",
+                             sub_id)
 
     dat = np.genfromtxt(file)
     wave = dat[0,:]

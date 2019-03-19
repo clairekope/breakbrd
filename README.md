@@ -59,8 +59,8 @@ This one is *not* a dictionary of dictionaries. Instead, each subhalo ID key ret
 ## Python Scripts
 - **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively. Will exit if using local snapshot data (`--local` flag).
 - **gas_analysis** produces the `_gas_info.pkl` files by analysing gas particle cutouts. Whether this information is generted for the parent sample or the g-r sample is controlled by a boolean at the top of the file.
-- **get_d4000** post-processes FSPS spectra to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` pickle file (depending on whether or not dust or the instantanous SFR was used in the spectra).
-- **illustris_cuts** performs the photometric cuts, and generates `cut2_M_r`, `parent`, and `cut3_g-r.pkl` files.
+- **get_d4000** post-processes all FSPS spectra of the inner 2 kpc to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` CSV file (depending on inclusion of dust and instantaneous SFR).
+- **illustris_cuts** performs the photometric cuts, generating `cut2_M_r_parent`, and `cut3_g-r.pkl` files.
 - **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR.
 - **utilities** contains helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity.
 
