@@ -26,11 +26,18 @@ if rank==0:
 
     if args.local:
         cat = readsubfHDF5.subfind_catalog(args.local, snapnum, keysel=['GroupFirstSub'])
-
+        sat = np.empty(len(sub_list), dtype=bool)
+        for i, sub_id in enumerate(sub_list):
+            # satellites are not the first subhalo in the group
+            sat[i] = not (sub_id in cat.GroupFirstSub)
 else:
     sub_list = None
+    if args.local:
+        sat = None
 
 my_subs = scatter_work(sub_list, rank, size)
+if args.local:
+    sat = comm.bcast(sat, root=0)
 my_particle_data = {}
 
 boxsize = get(url_dset)['boxsize']
@@ -181,7 +188,8 @@ for sub_id in my_subs[good_ids]:
     my_particle_data[sub_id]['outer_star'] = star_out
     my_particle_data[sub_id]['far_star']   = star_far
 
-    # !! Satellite?
+    if args.local:
+        my_particle_data[sub_id]['satellite'] = sat[sub_id]
 
 particle_lst = comm.gather(my_particle_data, root=0)
 
