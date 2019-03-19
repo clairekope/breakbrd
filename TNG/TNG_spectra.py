@@ -122,7 +122,7 @@ for sub in halo_subset[good_ids]:
                'disk': lambda r: np.logical_and(2.0 < r, r < 2*rhalfstar),
                'full': lambda r: np.ones(r.shape, dtype=bool)}
 
-    if rhalfstar > 2.0 and mtotgas > 0 and mtotstar > 0:
+    if rhalfstar > 2.0 and mtotstar > 0:
 
         starp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 4, -1, sub, long_ids=True, double_output=False).astype("float32") 
         stara = readhaloHDF5.readhalo(treebase, "snap", snapnum, "GAGE", 4, -1, sub, long_ids=True, double_output=False).astype("float32")
@@ -139,7 +139,7 @@ for sub in halo_subset[good_ids]:
 
         stard = np.sqrt(starx**2 + stary**2 + starz**2)
 
-        if inst:
+        if inst and mtotgas > 0:
             # Add instantaneous SFR from gas to last bin (i.e., now)
             # This requres using gas information
             gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
@@ -179,7 +179,7 @@ for sub in halo_subset[good_ids]:
                 sfr = np.array([ pop_mass[t_binner==j].sum()/dt[j] for j in range(dt.size) ])
                 sfr /= 1e9 # to Msun/yr
 
-                if inst:
+                if inst and mtotgas > 0:
                     reg_gas = reg_func(gasd)
                     reg_sfr = np.sum(gassfr[reg_gas])
                     sfr[-1] += reg_sfr

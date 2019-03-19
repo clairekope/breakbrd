@@ -91,7 +91,8 @@ for sub in halo_subset[good_ids]:
     subpos2 = pos2[sub]
 
     readhaloHDF5.reset()
-    if rhalfstar > 2.0 and mtotgas > 0 and mtotstar > 0:
+
+    if rhalfstar > 2.0 and mtotstar > 0:
 
         starp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 4, -1, sub, long_ids=True, double_output=False).astype("float32") 
         stara = readhaloHDF5.readhalo(treebase, "snap", snapnum, "GAGE", 4, -1, sub, long_ids=True, double_output=False).astype("float32") 
@@ -116,39 +117,6 @@ for sub in halo_subset[good_ids]:
         star_out = np.sum(starmass[star_out_reg])
         star_far = np.sum(starmass[star_far_reg])
 
-        gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
-        gasmass = readhaloHDF5.readhalo(treebase, "snap", snapnum, "MASS", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
-        sfr = readhaloHDF5.readhalo(treebase, "snap", snapnum, "SFR ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
-
-        gasmass = gasmass*1.0e10/h_small
-
-        gasx = periodic_centering(gasp[:,0], subpos0, boxsize) * a0/h_small
-        gasy = periodic_centering(gasp[:,1], subpos1, boxsize) * a0/h_small
-        gasz = periodic_centering(gasp[:,2], subpos2, boxsize) * a0/h_small
-        gasd = np.sqrt(gasx**2 + gasy**2 + gasz**2)
-        
-        gas_inr_reg = gasd < 2.0
-        gas_mid_reg = np.logical_and(gasd > 2.0, gasd < rhalfstar)
-        gas_out_reg = np.logical_and(gasd > rhalfstar, gasd < 2.0*rhalfstar)
-        gas_far_reg = gasd > 2.0*rhalfstar
-
-        gas_tot = np.sum(gasmass)
-        gas_inr = np.sum(gasmass[gas_inr_reg])
-        gas_mid = np.sum(gasmass[gas_mid_reg])
-        gas_out = np.sum(gasmass[gas_out_reg])
-        gas_far = np.sum(gasmass[gas_far_reg])
-
-        sfr_tot = np.sum(sfr)
-        sfr_inr = np.sum(sfr[gas_inr_reg])
-        sfr_mid = np.sum(sfr[gas_mid_reg])
-        sfr_out = np.sum(sfr[gas_out_reg])
-        sfr_far = np.sum(sfr[gas_far_reg])
-
-        if sat[sub]:
-            satid = 1
-        else:
-            satid = 0
-
         my_part_data[sub] = {}
         my_part_data[sub]['total_star'] = star_tot * Msun
         my_part_data[sub]['inner_star'] = star_inr * Msun
@@ -156,17 +124,51 @@ for sub in halo_subset[good_ids]:
         my_part_data[sub]['outer_star'] = star_out * Msun
         my_part_data[sub]['far_star']   = star_far * Msun
 
-        my_part_data[sub]['total_gas'] = gas_tot * Msun
-        my_part_data[sub]['inner_gas'] = gas_inr * Msun
-        my_part_data[sub]['mid_gas']   = gas_mid * Msun
-        my_part_data[sub]['outer_gas'] = gas_out * Msun
-        my_part_data[sub]['far_gas']   = gas_far * Msun
+        if mtotgas > 0:
+            gasp = readhaloHDF5.readhalo(treebase, "snap", snapnum, "POS ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
+            gasmass = readhaloHDF5.readhalo(treebase, "snap", snapnum, "MASS", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
+            sfr = readhaloHDF5.readhalo(treebase, "snap", snapnum, "SFR ", 0, -1, sub, long_ids=True, double_output=False).astype("float32") 
 
-        my_part_data[sub]['total_SFR'] = sfr_tot * Msun/yr
-        my_part_data[sub]['inner_SFR'] = sfr_inr * Msun/yr
-        my_part_data[sub]['mid_SFR']   = sfr_mid * Msun/yr
-        my_part_data[sub]['outer_SFR'] = sfr_out * Msun/yr
-        my_part_data[sub]['far_SFR']   = sfr_far * Msun/yr
+            gasmass = gasmass*1.0e10/h_small
+
+            gasx = periodic_centering(gasp[:,0], subpos0, boxsize) * a0/h_small
+            gasy = periodic_centering(gasp[:,1], subpos1, boxsize) * a0/h_small
+            gasz = periodic_centering(gasp[:,2], subpos2, boxsize) * a0/h_small
+            gasd = np.sqrt(gasx**2 + gasy**2 + gasz**2)
+            
+            gas_inr_reg = gasd < 2.0
+            gas_mid_reg = np.logical_and(gasd > 2.0, gasd < rhalfstar)
+            gas_out_reg = np.logical_and(gasd > rhalfstar, gasd < 2.0*rhalfstar)
+            gas_far_reg = gasd > 2.0*rhalfstar
+
+            gas_tot = np.sum(gasmass)
+            gas_inr = np.sum(gasmass[gas_inr_reg])
+            gas_mid = np.sum(gasmass[gas_mid_reg])
+            gas_out = np.sum(gasmass[gas_out_reg])
+            gas_far = np.sum(gasmass[gas_far_reg])
+
+            sfr_tot = np.sum(sfr)
+            sfr_inr = np.sum(sfr[gas_inr_reg])
+            sfr_mid = np.sum(sfr[gas_mid_reg])
+            sfr_out = np.sum(sfr[gas_out_reg])
+            sfr_far = np.sum(sfr[gas_far_reg])
+
+            my_part_data[sub]['total_gas'] = gas_tot * Msun
+            my_part_data[sub]['inner_gas'] = gas_inr * Msun
+            my_part_data[sub]['mid_gas']   = gas_mid * Msun
+            my_part_data[sub]['outer_gas'] = gas_out * Msun
+            my_part_data[sub]['far_gas']   = gas_far * Msun
+
+            my_part_data[sub]['total_SFR'] = sfr_tot * Msun/yr
+            my_part_data[sub]['inner_SFR'] = sfr_inr * Msun/yr
+            my_part_data[sub]['mid_SFR']   = sfr_mid * Msun/yr
+            my_part_data[sub]['outer_SFR'] = sfr_out * Msun/yr
+            my_part_data[sub]['far_SFR']   = sfr_far * Msun/yr
+
+        if sat[sub]:
+            satid = 1
+        else:
+            satid = 0
 
         my_part_data[sub]['satellite'] = satid
 
