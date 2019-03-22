@@ -2,6 +2,9 @@ import pickle
 import h5py
 import sys
 import os
+import readsubfHDF5
+import readhaloHDF5
+import snapHDF5
 import numpy as np
 import astropy.units as u
 import matplotlib; matplotlib.use('agg')
@@ -10,48 +13,52 @@ import matplotlib.pyplot as plt
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import * 
 
+z = args.z
+a0 = 1/(1+z)
+
 if rank==0:
     # Get the halos to loop over. It is now "all" of them.
     min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
     max_mass = 100 * littleh # 1e12 Msun
     search_query = "?mass_stars__gt=" + str(min_mass) \
                  + "&mass_stars__lt=" + str(max_mass) \
-                 + "&halfmassrad_stars__gt=" + str(2 / a * littleh) # 2 kpc
+                 + "&halfmassrad_stars__gt=" + str(2 / a0 * littleh) # 2 kpc
 
     cut1 = get(url_sbhalos + search_query)
     cut1['count']
-    cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
+    cut1 = get(url_sbhalos + search_query, {'limit':cut1['count'], 'order_by':'id'})
 
     sub_list = cut1['results']
+    sub_ids = np.array([sub['id'] for sub in cut1['results']], dtype='i')
 
     if args.local:
-        cat = readsubfHDF5.subfind_catalog(args.local, snapnum, keysel=['GroupFirstSub'])
-        sat = np.empty(len(sub_list), dtype=bool)
-        for i, sub_id in enumerate(sub_list):
-            # satellites are not the first subhalo in the group
-            sat[i] = not (sub_id in cat.GroupFirstSub)
+        cat = readsubfHDF5.subfind_catalog(args.local, snapnum, 
+                                           keysel=['GroupFirstSub','SubhaloGrNr'])
+        sat = np.zeros(cat.SubhaloGrNr.size, dtype=bool)
+        sat[sub_ids] = (sub_ids != cat.GroupFirstSub[cat.SubhaloGrNr[sub_ids]])
+        del cat
 else:
-    sub_list = None
+    sub_ids = None
     if args.local:
         sat = None
 
-my_subs = scatter_work(sub_list, rank, size)
+my_subs = scatter_work(sub_ids, rank, size)
 if args.local:
     sat = comm.bcast(sat, root=0)
 my_particle_data = {}
 
 boxsize = get(url_dset)['boxsize']
-z = args.z
-a0 = 1/(1+z)
 dthresh = 6.4866e-4 # 0.13 cm^-3 in code units -> true for TNG?
 
 good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
-
+    print(rank, sub_id)
     # Get half mass radius
     sub = get(url_sbhalos+str(sub_id))
     r_half = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
+
+    gas = True
 
     if not args.local:
         # Read particle data
@@ -69,10 +76,10 @@ for sub_id in my_subs[good_ids]:
                 sfr = f['PartType0']['StarFormationRate'][:]
         except KeyError:
             #print(sub_id, "no gas"); sys.stdout.flush()
-            pass 
+            gas = False
 
-       # Stars
-       try:
+        # Stars
+        try:
             with h5py.File(star_file) as f:
                 scoords = f['PartType4']['Coordinates'][:]
                 smass = f['PartType4']['Masses'][:]
@@ -84,19 +91,22 @@ for sub_id in my_subs[good_ids]:
     else:
         readhaloHDF5.reset()
 
-        # Gas
-        coords = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+        try:
+            # Gas
+            coords = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                        "POS ", 0, -1, sub_id, long_ids=True,
                                        double_output=False).astype("float32")
-        mass = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+            mass = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                      "MASS", 0, -1, sub_id, long_ids=True,
                                      double_output=False).astype("float32")
-        dens = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+            dens = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                      "RHO ", 0, -1, sub_id, long_ids=True,
                                      double_output=False).astype("float32")
-        sfr = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+            sfr = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                     "SFR ", 0, -1, sub_id, long_ids=True,
                                     double_output=False).astype("float32")
+        except AttributeError:
+            gas = False
 
         # Stars
         scoords = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
@@ -111,7 +121,7 @@ for sub_id in my_subs[good_ids]:
 
     my_particle_data[sub_id] = {}
 
-    if coords:
+    if gas:
         x = coords[:,0]
         y = coords[:,1]
         z = coords[:,2]
@@ -122,15 +132,16 @@ for sub_id in my_subs[good_ids]:
         mass = mass * 1e10 / littleh * u.Msun
         sfr = sfr * u.Msun/u.yr
         
-        inr_region = r < 2*u.kpc
-        mid_region = np.logical_and(r > 2*u.kpc, r < r_half)
-        out_region = np.logical_and(r > r_half,  r < 2*r_half)
-        far_region = r > 2*r_half
+        inr_reg = r < 2*u.kpc
+        mid_reg = np.logical_and(r > 2*u.kpc, r < r_half)
+        out_reg = np.logical_and(r > r_half,  r < 2*r_half)
+        far_reg = r > 2*r_half
         
-        inr_dense = np.logical_and(r < 2*u.kpc,  dens > dthresh)
-        mid_dense = np.logical_and(mid_region,   dens > dthresh)
-        out_dense = np.logical_and(outer_region, dens > dthresh)
-        far_dense = np.logical_and(r > 2*r_half, dens > dthresh)
+        tot_dense = dens > dthresh
+        inr_dense = np.logical_and(inr_reg, dens > dthresh)
+        mid_dense = np.logical_and(mid_reg, dens > dthresh)
+        out_dense = np.logical_and(out_reg, dens > dthresh)
+        far_dense = np.logical_and(far_reg, dens > dthresh)
         
         gas_tot = np.sum(mass)
         gas_inr = np.sum(mass[inr_reg])
@@ -156,11 +167,11 @@ for sub_id in my_subs[good_ids]:
         my_particle_data[sub_id]['outer_SFR'] = sfr_out
         my_particle_data[sub_id]['far_SFR']   = sfr_far
 
-        my_particle_data[sub_id]['total_SFE'] = sfr_tot / np.sum(mass[dens > dthresh])
-        my_particle_data[sub_id]['inner_SFE'] = inr_sfr / np.sum(mass[inr_dense])
-        my_particle_data[sub_id]['mid_SFE']   = mid_sfr / np.sum(mass[mid_dense])
-        my_particle_data[sub_id]['outer_SFE'] = out_sfr / np.sum(mass[out_dense])
-        my_particle_data[sub_id]['far_SFE']   = far_sfr / np.sum(mass[far_dense])
+        my_particle_data[sub_id]['total_SFE'] = sfr_tot / np.sum(mass[tot_dense])
+        my_particle_data[sub_id]['inner_SFE'] = sfr_inr / np.sum(mass[inr_dense])
+        my_particle_data[sub_id]['mid_SFE']   = sfr_mid / np.sum(mass[mid_dense])
+        my_particle_data[sub_id]['outer_SFE'] = sfr_out / np.sum(mass[out_dense])
+        my_particle_data[sub_id]['far_SFE']   = sfr_far / np.sum(mass[far_dense])
                                    
     sx = scoords[:,0]
     sy = scoords[:,1]
@@ -171,16 +182,16 @@ for sub_id in my_subs[good_ids]:
     sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
     smass = smass * 1e10 / littleh * u.Msun
 
-    sinr_region = sr < 2*u.kpc
-    smid_region = np.logical_and(sr > 2*u.kpc, sr < r_half)
-    sout_region = np.logical_and(sr > r_half,  sr < 2*r_half)
-    sfar_region = sr > 2*r_half
+    sinr_reg = sr < 2*u.kpc
+    smid_reg = np.logical_and(sr > 2*u.kpc, sr < r_half)
+    sout_reg = np.logical_and(sr > r_half,  sr < 2*r_half)
+    sfar_reg = sr > 2*r_half
 
     star_tot = np.sum(smass)
-    star_inr = np.sum(smass[star_inr_reg])
-    star_mid = np.sum(smass[star_mid_reg])
-    star_out = np.sum(smass[star_out_reg])
-    star_far = np.sum(smass[star_far_reg])
+    star_inr = np.sum(smass[sinr_reg])
+    star_mid = np.sum(smass[smid_reg])
+    star_out = np.sum(smass[sout_reg])
+    star_far = np.sum(smass[sfar_reg])
 
     my_particle_data[sub_id]['total_star'] = star_tot
     my_particle_data[sub_id]['inner_star'] = star_inr
@@ -190,7 +201,7 @@ for sub_id in my_subs[good_ids]:
 
     if args.local:
         my_particle_data[sub_id]['satellite'] = sat[sub_id]
-
+        
 particle_lst = comm.gather(my_particle_data, root=0)
 
 if rank==0:
