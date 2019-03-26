@@ -223,6 +223,6 @@ if rank==0:
         for k,v in dic.items():
             all_particle_data[k] = v
 
-    with open(folder+"cut1_particle_info.pkl","wb") as f:
+    with open(folder+"parent_particle_info.pkl","wb") as f:
         pickle.dump(all_particle_data,f)
 

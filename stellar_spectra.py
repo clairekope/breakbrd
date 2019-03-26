@@ -39,22 +39,12 @@ sp.params['imf_type'] = 1 # Chabrier (2003)
 
 if rank==0:
 
-    # Get the halos to loop over. It is now "all" of them.
-    min_mass = littleh # 1e10 Msun in 1/1e10 Msun / h
-    max_mass = 100 * littleh # 1e12 Msun
-    search_query = "?mass_stars__gt=" + str(min_mass) \
-                 + "&mass_stars__lt=" + str(max_mass) \
-                 + "&halfmassrad_stars__gt=" + str(2 / a0 * 0.704) # 2 kpc
+    with open(folder+"parent_particle_data.pkl","rb") as f:
+        part_data = pickle.load(f)
+    sub_list = np.array([k for k in part_data.keys()])
 
-    cut1 = get(url_sbhalos + search_query)
-    cut1['count']
-    cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
-
-    sub_list = np.array([sub['id'] for sub in cut1['results']], dtype='i')
-
-    if inst:
-        with open(folder+"cut1_particle_info.pkl","rb") as f:
-            part_data = pickle.load(f)
+    if not inst:
+        del part_data
 
 else:
     sub_list = None
@@ -105,7 +95,8 @@ for sub_id in my_subs[good_ids]:
 
     if more_regions: # rhalfstar redefined every halo
         regions['disk'] = lambda r: np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
-        regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
+        # full is for M_r cut, which we're no longer doing
+        #regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
 
     # If we downloaded the cutouts, load the one for our subhalo
     if not args.local:

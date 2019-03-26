@@ -26,11 +26,12 @@ def rmag_from_fits(sub_id):
         
     return abs_mag_r
 
-def gr_from_fits(sub_id, sub_dict):
+def gr_from_fits(sub_id, view, rhalf):
 
     file = folder+"illustris_fits/broadband_{}{}.fits".format(
             'rest_' if args.z!=0.0 else '', sub_id)
-    exten = 14 + sub_dict['view']
+
+    exten = 14 + view
     
     # Prepare broadband images for magnitude calculation
     hdr = fits.getheader(file, ext=exten)
@@ -55,7 +56,7 @@ def gr_from_fits(sub_id, sub_dict):
     f_zero = 3631e-23 * Jy # zero-point flux
     
     # Construct annulus for photometery
-    R_half = sub_dict['half_mass_rad']*u.kpc
+    R_half = rhalf*u.kpc
     center = (npix-1)/2
     pos = (center, center)
     rad_in = 2*u.kpc/pix_size

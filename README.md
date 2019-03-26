@@ -1,63 +1,24 @@
 # README
 
-## Pickle Files
-
-Every `.pkl` file contains a dictionary of dictionaries. For the first level, the keys are subhalo IDs. For the second level, the keys are described in the **File Contents** section.
-
-### Reading a File
-
-As an example, let's read `cut2_M_r_parent.pkl` into **Python 3**. Because these files were created using Python 3, they must be read using Python 3.
-
+## Data File Contents
+### `parent_particle_data.pkl`
+Information derived from particles and satellite status for subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc.
 ```python3
 import pickle
 
-with open('cut2_M_r_parent.pkl', 'rb') as f:
-  cut_M_r_parent = pickle.load(f)
+with open('parent_particle_data.pkl', 'rb') as f:
+    particle_data = pickle.load(f)
 ```
-
-### Cut Definitions
-
-Filename | Cut
-------------|----
-`cut1_particle_info.pkl`    | 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc
-`cut2_M_r_parent.pkl`       | M_r < -19
-`cut3_g-r.pkl`              | g-r > 0.655
-
-
-### File Contents
-#### `cut1_particle_info.pkl`
-All of these are Astropy quantities, and have units attached. **PLEASE UPDATE**
-
-- `total_SFR`: Instantaneous SFR for whole galaxy in Msun/yr
-- `total_gas`: Total gas mass in Msun
-- `total_sfe`: Instantaneous star formation efficiency for whole galaxy in 1/yr
-- `inner_SFR`: Instantaneous SFR for r < 2 kpc in Msun/yr
-- `inner_gas`: Gas mass for r < 2 kpc in Msun
-- `inner_sfe`: Instantaneous star formation efficiency for r < 2 kpc in 1/yr
-- `mid_sfe`: As above, for 2 kpc < r < 1 half mass radius
-- `far_sfe`: As above, for 1-2 half mass radii
-- `outer_sfe`: As above, for r > 2 half mass radii
-
-#### Cuts w/ n > 1
-- `M_r`:  Array of M_r for all camera views
-- `view`: Camera view with brightest M_r
-- `half_mass_rad`: Stellar half mass radius in kpc
-- `stellar_mass`: Stellar mass in Msun
-- `g-r`: If cut > 2, g-r in the "disk" (Astropy quantity)
-- `inner_sSFR_50Myr`/`100Myr`/`1Gyr`: If cut > 3, the inner (r < 2 kpc) time-averaged sSFR. Present in `cut4_radii.pkl` for subhalos that overlap with `cut4_ssfr.pkl`, for some reason?
-
 
 ## Python Scripts
 - **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively. Will exit if using local snapshot data (`--local` flag).
-- **gas_analysis** produces the `_gas_info.pkl` files by analysing gas particle cutouts. Whether this information is generted for the parent sample or the g-r sample is controlled by a boolean at the top of the file.
-- **get_d4000** post-processes all FSPS spectra of the inner 2 kpc to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` CSV file (depending on inclusion of dust and instantaneous SFR).
-- **illustris_cuts** performs the photometric cuts, generating `cut2_M_r_parent`, and `cut3_g-r.pkl` files.
+- **particle_info**
 - **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR.
+- **get_magnitudes**
+- **disk_color**
+- **get_d4000** post-processes all FSPS spectra of the inner 2 kpc to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` CSV file (depending on inclusion of dust and instantaneous SFR).
+- **galaxy_density**
 - **utilities** contains helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity.
-
-### Obsolete
-- **selection_investigation** makes a bunch of plots for initial investigation of cut populations.
-- **stellar_mass_growth** determines whether a galaxy is radially inverted or has high sSFR in the center. It creates the `cut4` files and ``cut3_g-r_ssfr.pkl`. The latter contains only the sSFR averaged over the last 1 Gyr for the g-r sample.
 
 ### Script Arguments
 All scripts use the same set of command line arguments:
@@ -72,7 +33,7 @@ All scripts use the same set of command line arguments:
 
 ### Pipeline
 
-To get the information necessary to generate `cut_final`, the scripts should be run as laid out in `python.slurm`. All scripts should be run with the same command line arguments.
+The scripts should be run as laid out in `pipeline.slurm`. All scripts should be run with the same command line arguments as set at the top of `pipeline.slurm`.
 
 ## Distributing Work Using MPI and `scatter_work`
 ```python3
