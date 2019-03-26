@@ -149,6 +149,12 @@ for sub_id in my_subs[good_ids]:
         gas_out = np.sum(mass[out_reg])
         gas_far = np.sum(mass[far_reg])
 
+        SFgas_tot = np.sum(mass[tot_dense])
+        SFgas_inr = np.sum(mass[inr_dense])
+        SFgas_mid = np.sum(mass[mid_dense])
+        SFgas_out = np.sum(mass[out_dense])
+        SFgas_far = np.sum(mass[far_dense])
+
         sfr_tot = np.sum(sfr)
         sfr_inr = np.sum(sfr[inr_reg])
         sfr_mid = np.sum(sfr[mid_reg])
@@ -161,17 +167,23 @@ for sub_id in my_subs[good_ids]:
         my_particle_data[sub_id]['outer_gas'] = gas_out
         my_particle_data[sub_id]['far_gas']   = gas_far
 
+        my_particle_data[sub_id]['total_SFgas'] = SFgas_tot
+        my_particle_data[sub_id]['inner_SFgas'] = SFgas_inr
+        my_particle_data[sub_id]['mid_SFgas']   = SFgas_mid
+        my_particle_data[sub_id]['outer_SFgas'] = SFgas_out
+        my_particle_data[sub_id]['far_SFgas']   = SFgas_far
+
         my_particle_data[sub_id]['total_SFR'] = sfr_tot
         my_particle_data[sub_id]['inner_SFR'] = sfr_inr
         my_particle_data[sub_id]['mid_SFR']   = sfr_mid
         my_particle_data[sub_id]['outer_SFR'] = sfr_out
         my_particle_data[sub_id]['far_SFR']   = sfr_far
 
-        my_particle_data[sub_id]['total_SFE'] = sfr_tot / np.sum(mass[tot_dense])
-        my_particle_data[sub_id]['inner_SFE'] = sfr_inr / np.sum(mass[inr_dense])
-        my_particle_data[sub_id]['mid_SFE']   = sfr_mid / np.sum(mass[mid_dense])
-        my_particle_data[sub_id]['outer_SFE'] = sfr_out / np.sum(mass[out_dense])
-        my_particle_data[sub_id]['far_SFE']   = sfr_far / np.sum(mass[far_dense])
+        my_particle_data[sub_id]['total_SFE'] = sfr_tot / SFgas_tot
+        my_particle_data[sub_id]['inner_SFE'] = sfr_inr / SFgas_inr
+        my_particle_data[sub_id]['mid_SFE']   = sfr_mid / SFgas_mid
+        my_particle_data[sub_id]['outer_SFE'] = sfr_out / SFgas_out
+        my_particle_data[sub_id]['far_SFE']   = sfr_far / SFgas_far
                                    
     sx = scoords[:,0]
     sy = scoords[:,1]
