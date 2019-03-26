@@ -11,23 +11,24 @@ z = args.z
 a0 = 1/(1+z)
 
 if rank == 0:
-    with open('parent_particle_data.pkl','rb') as f:
+    with open(folder+'parent_particle_data.pkl','rb') as f:
         parent = pickle.load(f)
 
-    subhalo_ids = np.array([k for k in parent.keys()])
+    subhalo_ids = np.array([k for k in parent.keys()], dtype=np.int32)
 
 else:
     subhalo_ids = None
 
 halo_subset = scatter_work(subhalo_ids, rank, size)
+good_ids = np.where(halo_subset > -1)[0]
     
 my_gr = {}
 
-for sub_id in halo_subset2[good_ids]:
+for sub_id in halo_subset[good_ids]:
 
     subhalo = get(url_sbhalos + str(sub_id))
 
-    if args.mocks:
+    if args.mock:
         gr_color = gr_from_spectra(sub_id)
         my_gr[sub_id] = gr_color
 
