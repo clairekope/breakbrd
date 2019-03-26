@@ -6,6 +6,8 @@ import numpy as np
 # CLI args container, url_dset, url_sbhalos, folder
 from utilities import *
 
+a = 1/(1+args.z)
+
 if args.local:
     print("Using local snapshot data; do not download cutouts. Exiting...")
     sys.exit()
@@ -27,7 +29,7 @@ if rank==0:
     cut1['count']
     cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
 
-    sub_list = cut1['results']
+    sub_list = np.array([sub['id'] for sub in cut1['results']], dtype='i')
 
 else:
     sub_list = None

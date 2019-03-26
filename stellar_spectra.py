@@ -16,8 +16,9 @@ from glob import glob
 
 inst = args.inst_sfr
 dust = args.dusty
-more_regions = args.mocks # if making our own mocks, do things a bit differently
+more_regions = args.mock # if making our own mocks, do things a bit differently
 
+a0 = 1/(1+args.z)
 
 sp = fsps.StellarPopulation(zcontinuous=1, sfh=3)
 
@@ -43,13 +44,13 @@ if rank==0:
     max_mass = 100 * littleh # 1e12 Msun
     search_query = "?mass_stars__gt=" + str(min_mass) \
                  + "&mass_stars__lt=" + str(max_mass) \
-                 + "&halfmassrad_stars__gt=" + str(2 / a * 0.704) # 2 kpc
+                 + "&halfmassrad_stars__gt=" + str(2 / a0 * 0.704) # 2 kpc
 
     cut1 = get(url_sbhalos + search_query)
     cut1['count']
     cut1 = get(url_sbhalos + search_query, {'limit':cut1['count']})
 
-    sub_list = cut1['results']
+    sub_list = np.array([sub['id'] for sub in cut1['results']], dtype='i')
 
     if inst:
         with open(folder+"cut1_particle_info.pkl","rb") as f:
@@ -57,11 +58,15 @@ if rank==0:
 
 else:
     sub_list = None
+    if inst:
+        part_data = None
                                    
 my_subs = scatter_work(sub_list, rank, size)
+if inst:
+    part_data = comm.bcast(part_data, root=0)
 
 boxsize = get(url_dset)['boxsize']
-z = get(url_dset + "snapshots/103")['redshift']
+z = args.z
 a0 = 1/(1+z)
 
 H0 = littleh * 100
@@ -87,29 +92,32 @@ dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports
 # Because scattered arrays have to be the same size, they are padded with -1
 good_ids = np.where(my_subs > -1)[0]
 
-regions = {'inner': lambda r: r < 2.0}
+regions = {'inner': lambda r: r < 2.0 * u.kpc}
 
 for sub_id in my_subs[good_ids]:
 
     sub = get(url_sbhalos + str(sub_id))
 
-    rhalfstar = ["halfmassrad_stars"] * u.kpc * a0/littleh
-    if rhalfstar < 2.0:
+    rhalfstar = sub["halfmassrad_stars"] * u.kpc * a0/littleh
+    if rhalfstar < 2.0 * u.kpc:
         # only vital for args.mocks==True
         continue 
 
     if more_regions: # rhalfstar redefined every halo
-        regions['disk'] = lambda r: np.logical_and(2.0 < r, r < 2*rhalfstar)
+        regions['disk'] = lambda r: np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
         regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
 
     # If we downloaded the cutouts, load the one for our subhalo
     if not args.local:
         file = folder+"stellar_cutouts/cutout_{}.hdf5".format(sub_id)
-        with h5py.File(file) as f:
-            coords = f['PartType4']['Coordinates'][:,:]
-            a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
-            init_mass = f['PartType4']['GFM_InitialMass'][:]
-            metals = f['PartType4']['GFM_Metallicity'][:]
+        try:
+            with h5py.File(file) as f:
+                coords = f['PartType4']['Coordinates'][:,:]
+                a = f['PartType4']['GFM_StellarFormationTime'][:] # as scale factor
+                init_mass = f['PartType4']['GFM_InitialMass'][:]
+                metals = f['PartType4']['GFM_Metallicity'][:]
+        except KeyError: # PartType4 doesn't exist for some reason
+            print("No PartType4 for subhalo", sub_id)
 
     # Otherwise get this information from the local snapshot
     else:
@@ -171,7 +179,10 @@ for sub_id in my_subs[good_ids]:
 
             if inst:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
-                sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
+                try:
+                    sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
+                except KeyError: # This subhalo has no instantaneous SFR
+                    pass
 
             sp.set_tabular_sfh(time_avg, sfr)
             wave, spec = sp.get_spectrum(tage=timenow.value)
@@ -179,7 +190,7 @@ for sub_id in my_subs[good_ids]:
 
         full_spec = np.nansum(spec_z, axis=0)
         print("Rank",rank,"writing spectra_{:06d}.txt".format(sub_id));sys.stdout.flush()
-        np.savetxt(folder+"spectra/{}/{}inst/{}dust/{}/spectra_{:06d}.txt".format(
+        np.savetxt(folder+"spectra/{}inst/{}dust/{}/spectra_{:06d}.txt".format(
                                                          "no_" if not inst else "",
                                                          "no_" if not dust else "",
                                                          reg_name,

@@ -1,7 +1,6 @@
 import os
 import sys
-# prep MPI environnment and import scatter_work(), get(), periodic_centering(),
-# CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
+# get(), CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh
 from utilities import *
 
 if args.mock:

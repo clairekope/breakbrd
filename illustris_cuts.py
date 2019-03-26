@@ -45,6 +45,7 @@ if rank == 0:
 #
 # Cut on $M_R < -19$
 #
+
 if not os.path.isfile(folder+"cut2_M_r_parent.pkl"):
    
     if rank == 0:
@@ -65,29 +66,29 @@ if not os.path.isfile(folder+"cut2_M_r_parent.pkl"):
     for sub_id in halo_subset[good_ids]:
 
         if args.local:
-            try:
-                rmag = rmag_from_spectra(sub_id)
-            except OSError:
-                print(sub_id)
-                continue
-            if rmag < -19:
-                subhalo = get(url_sbhalos + str(sub_id))
-                my_cut2_M_r[sub_id] = {"M_r":rmag,
-                                       "half_mass_rad":subhalo["halfmassrad_stars"]*a0/littleh,
-                                       "stellar_mass":subhalo['mass_stars']*1e10/littleh}
+            #try:
+            #    rmag = rmag_from_spectra(sub_id)
+            #except OSError:
+            #    print(sub_id)
+            #    continue
+            #if rmag < -19:
+            subhalo = get(url_sbhalos + str(sub_id))
+            my_cut2_M_r[sub_id] = {"M_r":rmag,
+                                   "half_mass_rad":subhalo["halfmassrad_stars"]*a0/littleh,
+                                   "stellar_mass":subhalo['mass_stars']*1e10/littleh}
         else:
-            try:
-                rmag = rmag_from_fits(sub_id)
-            except OSError:
-                print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
-                continue
+            #try:
+            #    rmag = rmag_from_fits(sub_id)
+            #except OSError:
+            #    print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
+            #    continue
 
-            if (rmag < -19).any():
-                subhalo = get(url_sbhalos + str(sub_id))
-                my_cut2_M_r[sub_id] = {"M_r":rmag,
-                                       "view":np.argmin(rmag),
-                                       "half_mass_rad":subhalo["halfmassrad_stars"]*a0/littleh,
-                                       "stellar_mass":subhalo['mass_stars']*1e10/littleh}
+            #if (rmag < -19).any():
+            subhalo = get(url_sbhalos + str(sub_id))
+            my_cut2_M_r[sub_id] = {"M_r":rmag,
+                                   "view":np.argmin(rmag),
+                                   "half_mass_rad":subhalo["halfmassrad_stars"]*a0/littleh,
+                                   "stellar_mass":subhalo['mass_stars']*1e10/littleh}
 
     cut2_M_r_lst = comm.gather(my_cut2_M_r, root=0)
     if rank==0:
