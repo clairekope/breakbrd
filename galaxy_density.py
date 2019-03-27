@@ -52,8 +52,9 @@ else:
     pos = None
 
 my_subs = scatter_work(sub_ids, rank, size)
-comm.bcast(mass, root=0)
-comm.bcast(pos, root=0)
+sub_ids = comm.bcast(sub_ids, root=0)
+mass = comm.bcast(mass, root=0)
+pos = comm.bcast(pos, root=0)
 
 boxsize = 75000
 
@@ -65,6 +66,7 @@ for sub_id in my_subs[good_ids]:
         me = np.argwhere(sub_ids==sub_id)[0,0]
     except:
         print(sub_id, np.argwhere(sub_ids==sub_id))
+#        continue
     my_x, my_y, my_z = pos[me]
     other_pos = np.delete(pos, me, axis=0) # delete self; use only positions
     other_mass = np.delete(mass, me, axis=0)
@@ -86,7 +88,7 @@ for sub_id in my_subs[good_ids]:
 densities_lst = comm.gather(my_densities, root=0)
 
 if rank == 0:
-    dens = np.zeros( (sub_ids.size, 3) )
+    dens = -1*np.ones( (sub_ids.size, 3) )
     i = 0
     for dic in densities_lst:
         for k, v in dic.items():
