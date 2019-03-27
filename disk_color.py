@@ -33,10 +33,14 @@ for sub_id in halo_subset[good_ids]:
         my_gr[sub_id] = gr_color
 
     else:
-        view = np.argmin(rmag_from_fits(sub_id))
-        rhalf = subhalo["halfmassrad_stars"]*a0/littleh
-        gr_color = gr_from_fits(sub_id, view, rhalf)
-        my_gr[sub_id] = gr_color 
+        try:
+            view = np.argmin(rmag_from_fits(sub_id))
+            rhalf = subhalo["halfmassrad_stars"]*a0/littleh
+            gr_color = gr_from_fits(sub_id, view, rhalf)
+            my_gr[sub_id] = gr_color 
+        except OSError:
+            print("Subhalo {} not found".format(sub_id)); sys.stdout.flush()
+            my_gr[sub_id] = np.nan
 
 gr_lst = comm.gather(my_gr, root=0)
 
