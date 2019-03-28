@@ -1,4 +1,3 @@
-import h5py
 import fsps
 import pickle
 import sys
@@ -7,7 +6,6 @@ import readsubfHDF5
 import readhaloHDF5
 import snapHDF5
 import numpy as np
-import matplotlib.pyplot as plt
 import astropy.units as u
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
@@ -63,7 +61,7 @@ H0 = littleh * 100
 timenow = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
           * np.log(np.sqrt(omegaL*1./omegaM*a0**3) \
           + np.sqrt(omegaL*1./omegaM*a0**3+1))\
-          * 3.08568e19/3.15576e16 * u.Gyr
+          * 3.08568e19/3.15576e16 # Gyr
 
 met_center_bins = np.array([-2.5, -2.05, -1.75, -1.45, -1.15, -0.85, -0.55,
                             -0.35, -0.25, -0.15, -0.05, 0.05, 0.15, 0.25,
@@ -74,7 +72,7 @@ half_width = (met_center_bins[1:] - met_center_bins[:-1])/2
 met_bins[:-1] = met_center_bins[:-1] + half_width
 met_bins[-1] = 9
 
-time_bins = np.arange(0, timenow.value+0.01, 0.01) # Gyr
+time_bins = np.arange(0, timenow+0.01, 0.01) # Gyr
 time_avg = (time_bins[:-1] + time_bins[1:])/2 # formation time for fsps
 dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports that
 
@@ -151,7 +149,7 @@ for sub_id in my_subs[good_ids]:
         form_time_reg = 2.0/(3.0*H0) * 1./np.sqrt(omegaL) \
                         * np.log(np.sqrt(omegaL*1./omegaM*(a_reg)**3) \
                         + np.sqrt(omegaL*1./omegaM*(a_reg)**3+1)) \
-                        * 3.08568e19/3.15576e16 * u.Gyr
+                        * 3.08568e19/3.15576e16 # Gyr
 
         z_binner = np.digitize(np.log10(metals_reg), met_bins)
 
@@ -171,12 +169,15 @@ for sub_id in my_subs[good_ids]:
             if inst:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
                 try:
-                    sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
+                    if reg_name=='inner':
+                        sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
+                    elif reg_name=='disk':
+                        sfr[-1] += part_data[sub_id]['dsk_SFR'].value
                 except KeyError: # This subhalo has no instantaneous SFR
                     pass
 
             sp.set_tabular_sfh(time_avg, sfr)
-            wave, spec = sp.get_spectrum(tage=timenow.value)
+            wave, spec = sp.get_spectrum(tage=timenow)
             spec_z[i] = spec
 
         full_spec = np.nansum(spec_z, axis=0)
