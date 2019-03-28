@@ -2,13 +2,14 @@ import pickle
 import h5py
 import sys
 import os
+import gc
 import readsubfHDF5
 import readhaloHDF5
 import snapHDF5
 import numpy as np
 import astropy.units as u
-import matplotlib; matplotlib.use('agg')
-import matplotlib.pyplot as plt
+#import matplotlib; matplotlib.use('agg')
+#import matplotlib.pyplot as plt
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import * 
@@ -37,6 +38,7 @@ if rank==0:
         sat = np.zeros(cat.SubhaloGrNr.size, dtype=bool)
         sat[sub_ids] = (sub_ids != cat.GroupFirstSub[cat.SubhaloGrNr[sub_ids]])
         del cat
+        gc.collect()
 else:
     sub_ids = None
     if args.local:
@@ -53,7 +55,7 @@ dthresh = 6.4866e-4 # 0.13 cm^-3 in code units -> true for TNG?
 good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
-    print(rank, sub_id)
+
     # Get half mass radius
     sub = get(url_sbhalos+str(sub_id))
     r_half = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
@@ -133,56 +135,47 @@ for sub_id in my_subs[good_ids]:
         sfr = sfr * u.Msun/u.yr
         
         inr_reg = r < 2*u.kpc
-        mid_reg = np.logical_and(r > 2*u.kpc, r < r_half)
-        out_reg = np.logical_and(r > r_half,  r < 2*r_half)
+        dsk_reg = np.logical_and(r > 2*u.kpc, r < 2*r_half)
         far_reg = r > 2*r_half
         
         tot_dense = dens > dthresh
         inr_dense = np.logical_and(inr_reg, dens > dthresh)
-        mid_dense = np.logical_and(mid_reg, dens > dthresh)
-        out_dense = np.logical_and(out_reg, dens > dthresh)
+        dsk_dense = np.logical_and(dsk_reg, dens > dthresh)
         far_dense = np.logical_and(far_reg, dens > dthresh)
         
         gas_tot = np.sum(mass)
         gas_inr = np.sum(mass[inr_reg])
-        gas_mid = np.sum(mass[mid_reg])
-        gas_out = np.sum(mass[out_reg])
+        gas_dsk = np.sum(mass[dsk_reg])
         gas_far = np.sum(mass[far_reg])
 
         SFgas_tot = np.sum(mass[tot_dense])
         SFgas_inr = np.sum(mass[inr_dense])
-        SFgas_mid = np.sum(mass[mid_dense])
-        SFgas_out = np.sum(mass[out_dense])
+        SFgas_dsk = np.sum(mass[dsk_dense])
         SFgas_far = np.sum(mass[far_dense])
 
         sfr_tot = np.sum(sfr)
         sfr_inr = np.sum(sfr[inr_reg])
-        sfr_mid = np.sum(sfr[mid_reg])
-        sfr_out = np.sum(sfr[out_reg])
+        sfr_dsk = np.sum(sfr[dsk_reg])
         sfr_far = np.sum(sfr[far_reg])
         
         my_particle_data[sub_id]['total_gas'] = gas_tot
         my_particle_data[sub_id]['inner_gas'] = gas_inr
-        my_particle_data[sub_id]['mid_gas']   = gas_mid
-        my_particle_data[sub_id]['outer_gas'] = gas_out
+        my_particle_data[sub_id]['dsk_gas']   = gas_dsk
         my_particle_data[sub_id]['far_gas']   = gas_far
 
         my_particle_data[sub_id]['total_SFgas'] = SFgas_tot
         my_particle_data[sub_id]['inner_SFgas'] = SFgas_inr
-        my_particle_data[sub_id]['mid_SFgas']   = SFgas_mid
-        my_particle_data[sub_id]['outer_SFgas'] = SFgas_out
+        my_particle_data[sub_id]['dsk_SFgas']   = SFgas_dsk
         my_particle_data[sub_id]['far_SFgas']   = SFgas_far
 
         my_particle_data[sub_id]['total_SFR'] = sfr_tot
         my_particle_data[sub_id]['inner_SFR'] = sfr_inr
-        my_particle_data[sub_id]['mid_SFR']   = sfr_mid
-        my_particle_data[sub_id]['outer_SFR'] = sfr_out
+        my_particle_data[sub_id]['dsk_SFR']   = sfr_dsk
         my_particle_data[sub_id]['far_SFR']   = sfr_far
 
         my_particle_data[sub_id]['total_SFE'] = sfr_tot / SFgas_tot
         my_particle_data[sub_id]['inner_SFE'] = sfr_inr / SFgas_inr
-        my_particle_data[sub_id]['mid_SFE']   = sfr_mid / SFgas_mid
-        my_particle_data[sub_id]['outer_SFE'] = sfr_out / SFgas_out
+        my_particle_data[sub_id]['dsk_SFE']   = sfr_dsk / SFgas_dsk
         my_particle_data[sub_id]['far_SFE']   = sfr_far / SFgas_far
                                    
     sx = scoords[:,0]
@@ -195,20 +188,17 @@ for sub_id in my_subs[good_ids]:
     smass = smass * 1e10 / littleh * u.Msun
 
     sinr_reg = sr < 2*u.kpc
-    smid_reg = np.logical_and(sr > 2*u.kpc, sr < r_half)
-    sout_reg = np.logical_and(sr > r_half,  sr < 2*r_half)
+    sdsk_reg = np.logical_and(sr > 2*u.kpc, sr < 2*r_half)
     sfar_reg = sr > 2*r_half
 
     star_tot = np.sum(smass)
     star_inr = np.sum(smass[sinr_reg])
-    star_mid = np.sum(smass[smid_reg])
-    star_out = np.sum(smass[sout_reg])
+    star_dsk = np.sum(smass[sdsk_reg])
     star_far = np.sum(smass[sfar_reg])
 
     my_particle_data[sub_id]['total_star'] = star_tot
     my_particle_data[sub_id]['inner_star'] = star_inr
-    my_particle_data[sub_id]['mid_star']   = star_mid
-    my_particle_data[sub_id]['outer_star'] = star_out
+    my_particle_data[sub_id]['dsk_star']   = star_dsk
     my_particle_data[sub_id]['far_star']   = star_far
 
     if args.local:
@@ -223,6 +213,6 @@ if rank==0:
         for k,v in dic.items():
             all_particle_data[k] = v
 
-    with open(folder+"parent_particle_info.pkl","wb") as f:
+    with open(folder+"parent_particle_data.pkl","wb") as f:
         pickle.dump(all_particle_data,f)
 
