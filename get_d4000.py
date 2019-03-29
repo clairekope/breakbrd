@@ -30,8 +30,10 @@ for i, f in enumerate(files):
 
     d4000[i] = sub_id, get_dn4000(wave, spec)
 
+sort = np.argsort(d4000[:,0])
+
 np.savetxt(folder+"D4000_{}{}dust.csv".format(
                              "" if inst else "no_inst_",
                              "" if dust else "no_"),
-           d4000, fmt="%d %g", header='Sub ID, D4000', delimiter=',')
+           d4000[sort], fmt="%d %g", header='Sub ID, D4000', delimiter=',')
 
