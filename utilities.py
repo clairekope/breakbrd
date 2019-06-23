@@ -73,8 +73,8 @@ def periodic_centering(x, center, boxsize):
 parser = argparse.ArgumentParser(
     description="Specify Illustris version, redshift, and analysis specifications."
                                 )
-parser.add_argument('z', type=float, choices=[0.0, 0.5], action="store",
-                    help='Redshift; only 0.0 or 0.5 currently supported')
+parser.add_argument('z', type=float, choices=[0.0, 0.1, 0.5], action="store",
+                    help='Redshift; only 0.0 or 0.5 (or 0.1 for TNG) are currently supported')
 
 #parser.add_argument('-p','--parent', action='store_true', dest='parent',
 #                    help='Process parent sample')
@@ -136,5 +136,9 @@ else:
     elif args.z==0.5:
         snapnum = 67
         folder = 'z05_TNG/'
+
+    elif args.z==0.1:
+        snapnum = 91
+        folder = 'z01_TNG/'
 
 url_sbhalos = url_dset + "snapshots/" + str(snapnum) + "/subhalos/"

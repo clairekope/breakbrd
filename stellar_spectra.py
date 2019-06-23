@@ -2,6 +2,7 @@ import fsps
 import pickle
 import sys
 import os
+import h5py
 import readsubfHDF5
 import readhaloHDF5
 import snapHDF5
