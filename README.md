@@ -3,7 +3,7 @@
 ## Major Changes
 Previously, each stage of the subhalo selection process (mass cut, photometric cut, spectral cut) was written out as it's own pickled dictionary of dictionaries, and there were separate dictionaries for the parent sample. Much of this was handled by `illustris_cuts.py`.
 
-Now¸ all particle-based data for all parent subhalos (i.e., SFR within 2 kpc) is written to one pickle file (`parent_particle_data.pkl`) by `particle_info.py` and cuts can be applied during analysis. This cuts down on the overall amount of data written and can make the analysis simpler (i.e., only one dict of dicts has to be converted to numpy arrays).
+Now, all particle-based data for all parent subhalos (i.e., SFR within 2 kpc) is written to one pickle file (`parent_particle_data.pkl`) by `particle_info.py` and cuts can be applied during analysis. This cuts down on the overall amount of data written and can make the analysis simpler (i.e., only one dict of dicts has to be converted to numpy arrays).
 
 ## Python Scripts
 ### Command Line Arguments
@@ -18,8 +18,9 @@ All scripts use the same set of command line arguments:
 
 ### Pipeline
 The scripts should be run in the order listed below, and as demonstrated in `pipeline.slurm` (which is a batch job submission script for HPC resources using the SLURM queue system). All scripts should be run with the same command line arguments as set at the top of `pipeline.slurm`.
+
 1. **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively. Will exit if using local snapshot data (`--local` flag).
-2. **particle_info** will generate a pickled dictionary of dictionaries for all subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun, saved to `parent_particle_data.pkl`. See the section on [pickle file contents](#datacontents) for more details.
+2. **particle_info** will generate a pickled dictionary of dictionaries for all subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun, saved to `parent_particle_data.pkl`. See the section on [pickle file contents](#pickle-file-contents) for more details. **TODO** save this as an array so it isn't as clunky. Conversion code already exists.
 3. **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR based on the `--no-inst` and `--no-dust` flags respectively. It will make spectra for multiple regions of the subhalo. **TODO** write folders if they don't exist instead of failing.
 4. **disk_color** calculates the color of the subhalo's disk either based on FITs files or spectra from `stellar_spectra.py` if using the `--local` flag. Uses functions from `get_magnitudes.py`. Outputs to `disk_color.csv`.
 5. **get_d4000** post-processes all FSPS spectra of the inner 2 kpc to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` CSV file (depending on inclusion of dust and instantaneous SFR).
@@ -29,8 +30,8 @@ The scripts should be run in the order listed below, and as demonstrated in `pip
 - **utilities** contains CLI arg parser and helper functions for downloading Illustris API data, splitting work among MPI tasks, and dealing with Illustris domain periodicity.
 - **get_magnitudes** contains functions for calculating magnitudes from either FITs files or from spectra. If calculating from spectra, the files `SDSS_r_transmission.txt` and `SDSS_g_transmission.txt` must be in the same directory as this script.
 
-## Acessing Particle Data
-### <a name="datacontents"></a>Pickle File Contents
+## Using the Data
+### Pickle File Contents
 The script `particle_info.py` produces a dictionary of dictionaries containing subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc. Each subhalo ID matches to its own dictionary with information derived from particles and a boolean for satellite status. Each value follows the format `region_quantity`.
 
 #### Regions
@@ -45,13 +46,42 @@ The script `particle_info.py` produces a dictionary of dictionaries containing s
 - `SFR`: instantaneous star formation rate (calculated by Illustris from the gas) in Msun/yr
 - `SFE`: star formation efficiency, calculated as `SFR/SFgas`, in 1/yr
 
-### Using Pickled Data
+### CSV Files
+Three scripts will output CSV files: `disk_color.py`, `get_d4000.py`, and `galaxy_density.py`. These are sorted by Subhalo ID. Each file has a one-line header describing the contents and units
+
+### Sample Code
 
 ```python3
 import pickle
+import numpy as np
 
+# Load pickle file
 with open('parent_particle_data.pkl', 'rb') as f:
     particle_data = pickle.load(f)
+
+# Load a CSV file
+gr_subids, gr_data = np.genfromtxt('disk_color.csv', delimiter=',',
+                                    skip_header=1, unpack=True)
+gr_subids = gr_subids.astype(int)
+
+# Make empty arrays to copy pickle data into
+inner_gas = np.empty(len(particle_data))
+outer_gas = np.empty_like(inner_gas)
+
+for i, subid in enumerate(gr_subids.astype(int, copy=False)):
+    try:
+        inner_gas[i] = particle_data[k]['inner_gas'].value
+        outer_gas[i] = particle_data[k]['outer_gas'].value
+    except KeyError: # There is no gas
+        inner_gas[i] = 0.0
+        outer_gas[i] = 0.0
+
+# Make a boolean array for the g-r cut. True entries are part of the cut.
+gr_cut = gr_data > 0.655
+
+# What is the average inner gas mass of g-r selected subhaloes?
+print(np.average(inner_gas[gr_cut]))
+
 ```
 
 ## Distributing Work Using MPI and `scatter_work`
