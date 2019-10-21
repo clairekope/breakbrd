@@ -1,5 +1,6 @@
 import os
 import sys
+import warnings
 import numpy as np
 from scipy.interpolate import interp1d
 from astropy.io import fits
@@ -7,7 +8,7 @@ from astropy import units as u
 from astropy import constants as c
 from photutils import CircularAnnulus, aperture_photometry
 
-from utilities import *#get, url_sbhalos, args, folder, littleh
+from utilities import * #get, url_sbhalos, args, folder, littleh
 
 a0 = 1/(1+args.z)
 
@@ -55,6 +56,9 @@ def gr_from_fits(sub_id, view, rhalf):
     Jy = u.Unit("erg / s / Hz / cm**2") # astropy Jy cancels extra dims
     f_zero = 3631e-23 * Jy # zero-point flux
     
+    warnings.warn('Calculating g-r from FITS uses the old "disk" definition',
+                  UserWarning)
+
     # Construct annulus for photometery
     R_half = rhalf*u.kpc
     center = (npix-1)/2

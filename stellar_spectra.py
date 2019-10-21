@@ -44,7 +44,6 @@ if rank==0:
 
     if not inst:
         del part_data
-
 else:
     sub_list = None
     if inst:
@@ -87,13 +86,17 @@ for sub_id in my_subs[good_ids]:
 
     sub = get(url_sbhalos + str(sub_id))
 
-    rhalfstar = sub["halfmassrad_stars"] * u.kpc * a0/littleh
-    if rhalfstar < 2.0 * u.kpc:
-        # only vital for args.mocks==True
-        continue 
+    # rhalfstar = sub["halfmassrad_stars"] * u.kpc * a0/littleh
+    # if rhalfstar < 2.0 * u.kpc:
+    #     # only vital for args.mocks==True
+    #     # should already be true for Parent, but just in case
+    #     continue 
 
-    if more_regions: # rhalfstar redefined every halo
-        regions['disk'] = lambda r: np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
+    if more_regions: 
+        regions['disk'] = lambda r: r > 2.0*u.kpc 
+        # Old disk definition is np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
+        # with rhalfstar redefined every halo
+        
         # full is for M_r cut, which we're no longer doing
         #regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
 
@@ -173,7 +176,7 @@ for sub_id in my_subs[good_ids]:
                     if reg_name=='inner':
                         sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
                     elif reg_name=='disk':
-                        sfr[-1] += part_data[sub_id]['dsk_SFR'].value
+                        sfr[-1] += part_data[sub_id]['disk_SFR'].value
                 except KeyError: # This subhalo has no instantaneous SFR
                     pass
 

@@ -1,6 +1,8 @@
 # README
 
 ## Major Changes
+The "disk" region now refers to particles with r < 2 kpc instead of 2 kpc < r < 2 Rhalf. The latter is now referred to as the "outer" region.
+
 Previously, each stage of the subhalo selection process (mass cut, photometric cut, spectral cut) was written out as it's own pickled dictionary of dictionaries, and there were separate dictionaries for the parent sample. Much of this was handled by `illustris_cuts.py`.
 
 Now, all particle-based data for all parent subhalos (i.e., SFR within 2 kpc) is written to one pickle file (`parent_particle_data.pkl`) by `particle_info.py` and cuts can be applied during analysis. This cuts down on the overall amount of data written and can make the analysis simpler (i.e., only one dict of dicts has to be converted to numpy arrays).
@@ -22,7 +24,7 @@ The scripts should be run in the order listed below, and as demonstrated in `pip
 1. **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively. Will exit if using local snapshot data (`--local` flag).
 2. **particle_info** will generate a pickled dictionary of dictionaries for all subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun, saved to `parent_particle_data.pkl`. See the section on [pickle file contents](#pickle-file-contents) for more details. **TODO** save this as an array so it isn't as clunky. Conversion code already exists.
 3. **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR based on the `--no-inst` and `--no-dust` flags respectively. It will make spectra for multiple regions of the subhalo. **TODO** write folders if they don't exist instead of failing.
-4. **disk_color** calculates the color of the subhalo's disk either based on FITs files or spectra from `stellar_spectra.py` if using the `--local` flag. Uses functions from `get_magnitudes.py`. Outputs to `disk_color.csv`.
+4. **disk_color** calculates the color of the subhalo's disk either based on FITs files or spectra from `stellar_spectra.py` if using the `--local` flag. Uses functions from `get_magnitudes.py`. Outputs to `disk_color.csv`. **NOTE:** g-r from FITS uses the old disk definition (now called the "outer" region), while from spectra uses the new, r > 2 kpc definition.
 5. **get_d4000** post-processes all FSPS spectra of the inner 2 kpc to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` CSV file (depending on inclusion of dust and instantaneous SFR).
 6. **galaxy_density** calculates the number and mass density of galaxies with Mstar &gt; 1e10 Msun around each subhalo in the parent sample. Outputs to `local_densities.csv`.
 
@@ -37,8 +39,9 @@ The script `particle_info.py` produces a dictionary of dictionaries containing s
 #### Regions
 - `total`: All particles in the subhalo
 - `inner`: Particles with r < 2 kpc
-- `dsk`: Particles with 2 kpc < r < 2 Rhalf
+- `outer`: Particles with 2 kpc < r < 2 Rhalf
 - `far`: Particles with r > 2 Rhalf
+- `disk`: Particles with r > 2 kpc
 
 #### Quantities
 - `gas`: gas mass in Msun

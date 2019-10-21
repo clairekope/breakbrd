@@ -135,48 +135,57 @@ for sub_id in my_subs[good_ids]:
         sfr = sfr * u.Msun/u.yr
         
         inr_reg = r < 2*u.kpc
-        dsk_reg = np.logical_and(r > 2*u.kpc, r < 2*r_half)
+        otr_reg = np.logical_and(r > 2*u.kpc, r < 2*r_half)
         far_reg = r > 2*r_half
+        dsk_reg = r > 2*u.kpc
         
         tot_dense = dens > dthresh
         inr_dense = np.logical_and(inr_reg, dens > dthresh)
-        dsk_dense = np.logical_and(dsk_reg, dens > dthresh)
+        otr_dense = np.logical_and(otr_reg, dens > dthresh)
         far_dense = np.logical_and(far_reg, dens > dthresh)
+        dsk_dense = np.logical_and(dsk_reg, dens > dthresh)
         
         gas_tot = np.sum(mass)
         gas_inr = np.sum(mass[inr_reg])
-        gas_dsk = np.sum(mass[dsk_reg])
+        gas_otr = np.sum(mass[otr_reg])
         gas_far = np.sum(mass[far_reg])
+        gas_dsk = np.sum(mass[dsk_reg])
 
         SFgas_tot = np.sum(mass[tot_dense])
         SFgas_inr = np.sum(mass[inr_dense])
-        SFgas_dsk = np.sum(mass[dsk_dense])
+        SFgas_otr = np.sum(mass[otr_dense])
         SFgas_far = np.sum(mass[far_dense])
+        SFgas_dsk = np.sum(mass[dsk_dense])
 
         sfr_tot = np.sum(sfr)
         sfr_inr = np.sum(sfr[inr_reg])
-        sfr_dsk = np.sum(sfr[dsk_reg])
+        sfr_otr = np.sum(sfr[otr_reg])
         sfr_far = np.sum(sfr[far_reg])
+        sfr_dsk = np.sum(sfr[dsk_reg])
         
         my_particle_data[sub_id]['total_gas'] = gas_tot
         my_particle_data[sub_id]['inner_gas'] = gas_inr
-        my_particle_data[sub_id]['dsk_gas']   = gas_dsk
+        my_particle_data[sub_id]['outer_gas'] = gas_otr
         my_particle_data[sub_id]['far_gas']   = gas_far
+        my_particle_data[sub_id]['disk_gas']  = gas_dsk
 
         my_particle_data[sub_id]['total_SFgas'] = SFgas_tot
         my_particle_data[sub_id]['inner_SFgas'] = SFgas_inr
-        my_particle_data[sub_id]['dsk_SFgas']   = SFgas_dsk
+        my_particle_data[sub_id]['outer_SFgas'] = SFgas_otr
         my_particle_data[sub_id]['far_SFgas']   = SFgas_far
+        my_particle_data[sub_id]['disk_SFgas']  = SFgas_dsk
 
         my_particle_data[sub_id]['total_SFR'] = sfr_tot
         my_particle_data[sub_id]['inner_SFR'] = sfr_inr
-        my_particle_data[sub_id]['dsk_SFR']   = sfr_dsk
+        my_particle_data[sub_id]['outer_SFR'] = sfr_otr
         my_particle_data[sub_id]['far_SFR']   = sfr_far
+        my_particle_data[sub_id]['disk_SFR']  = sfr_dsk
 
         my_particle_data[sub_id]['total_SFE'] = sfr_tot / SFgas_tot
         my_particle_data[sub_id]['inner_SFE'] = sfr_inr / SFgas_inr
-        my_particle_data[sub_id]['dsk_SFE']   = sfr_dsk / SFgas_dsk
+        my_particle_data[sub_id]['outer_SFE'] = sfr_otr / SFgas_otr
         my_particle_data[sub_id]['far_SFE']   = sfr_far / SFgas_far
+        my_particle_data[sub_id]['disk_SFE']  = sfr_dsk / SFgas_dsk
                                    
     sx = scoords[:,0]
     sy = scoords[:,1]
@@ -188,18 +197,21 @@ for sub_id in my_subs[good_ids]:
     smass = smass * 1e10 / littleh * u.Msun
 
     sinr_reg = sr < 2*u.kpc
-    sdsk_reg = np.logical_and(sr > 2*u.kpc, sr < 2*r_half)
+    sotr_reg = np.logical_and(sr > 2*u.kpc, sr < 2*r_half)
     sfar_reg = sr > 2*r_half
+    sdsk_reg = sr > 2*u.kpc
 
     star_tot = np.sum(smass)
     star_inr = np.sum(smass[sinr_reg])
-    star_dsk = np.sum(smass[sdsk_reg])
+    star_otr = np.sum(smass[sotr_reg])
     star_far = np.sum(smass[sfar_reg])
+    star_dsk = np.sum(smass[sdsk_reg])
 
     my_particle_data[sub_id]['total_star'] = star_tot
     my_particle_data[sub_id]['inner_star'] = star_inr
-    my_particle_data[sub_id]['dsk_star']   = star_dsk
+    my_particle_data[sub_id]['outer_star'] = star_otr
     my_particle_data[sub_id]['far_star']   = star_far
+    my_particle_data[sub_id]['disk_star']  = star_dsk
 
     if args.local:
         my_particle_data[sub_id]['satellite'] = sat[sub_id]
