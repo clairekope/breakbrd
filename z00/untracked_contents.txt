@@ -1,8 +1,0 @@
-#	final_cut_mergers/
-#	group_data/
-#	parent_M_r_mergers/
-#	parent_M_r_subhalos.txt
-#	pos_data
-#	spectra/
-
-

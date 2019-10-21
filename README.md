@@ -22,7 +22,7 @@ All scripts use the same set of command line arguments:
 The scripts should be run in the order listed below, and as demonstrated in `pipeline.slurm` (which is a batch job submission script for HPC resources using the SLURM queue system). All scripts should be run with the same command line arguments as set at the top of `pipeline.slurm`.
 
 1. **download_cutouts** and **download_fits** are for bulk downloading particle cutouts and mock FITs files, respectively. Will exit if using local snapshot data (`--local` flag).
-2. **particle_info** will generate a pickled dictionary of dictionaries for all subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun, saved to `parent_particle_data.pkl`. See the section on [pickle file contents](#pickle-file-contents) for more details. **TODO** save this as an array so it isn't as clunky. Conversion code already exists.
+2. **particle_info** will generate a CSV for all subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun, saved to `parent_particle_data.csv`. See the section on [Parent Particle Data](#parent-particle-data) for more details. **TODO** save this as an array so it isn't as clunky. Conversion code already exists.
 3. **stellar_spectra** generates the mock spectra with FSPS, and will either include or disclude dust or the instantaneous SFR based on the `--no-inst` and `--no-dust` flags respectively. It will make spectra for multiple regions of the subhalo. **TODO** write folders if they don't exist instead of failing.
 4. **disk_color** calculates the color of the subhalo's disk either based on FITs files or spectra from `stellar_spectra.py` if using the `--local` flag. Uses functions from `get_magnitudes.py`. Outputs to `disk_color.csv`. **NOTE:** g-r from FITS uses the old disk definition (now called the ["outer" region](#regions)), while from spectra uses the new, r > 2 kpc definition.
 5. **get_d4000** post-processes all FSPS spectra of the inner 2 kpc to calculate the D4000 measure (uses Tjitske's function) and saves them in the appropriate `d4000` CSV file (depending on inclusion of dust and instantaneous SFR).
@@ -33,8 +33,8 @@ The scripts should be run in the order listed below, and as demonstrated in `pip
 - **get_magnitudes** contains functions for calculating magnitudes from either FITs files or from spectra. If calculating from spectra, the files `SDSS_r_transmission.txt` and `SDSS_g_transmission.txt` must be in the same directory as this script.
 
 ## Using the Data
-### Pickle File Contents
-The script `particle_info.py` produces a dictionary of dictionaries containing subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc. Each subhalo ID matches to its own dictionary with information derived from particles and a boolean for satellite status. Each value follows the format `region_quantity`.
+### Parent Particle Data
+The script `particle_info.py` produces "parent_particle_data.csv", which contains all subhalos with 1e10 Msun &lt; Mstar &lt; 1e12 Msun & half mass radius &gt; 2 kpc. Each subhalo ID is a row in the CSV with information derived from particles and a boolean for satellite status. Each column is named following the format `region_quantity`.
 
 #### Regions
 - `total`: All particles in the subhalo

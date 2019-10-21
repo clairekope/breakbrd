@@ -186,6 +186,31 @@ for sub_id in my_subs[good_ids]:
         my_particle_data[sub_id]['outer_SFE'] = sfr_otr / SFgas_otr
         my_particle_data[sub_id]['far_SFE']   = sfr_far / SFgas_far
         my_particle_data[sub_id]['disk_SFE']  = sfr_dsk / SFgas_dsk
+
+    else:
+        my_particle_data[sub_id]['total_gas'] = np.nan
+        my_particle_data[sub_id]['inner_gas'] = np.nan
+        my_particle_data[sub_id]['outer_gas'] = np.nan
+        my_particle_data[sub_id]['far_gas']   = np.nan
+        my_particle_data[sub_id]['disk_gas']  = np.nan
+
+        my_particle_data[sub_id]['total_SFgas'] = np.nan
+        my_particle_data[sub_id]['inner_SFgas'] = np.nan
+        my_particle_data[sub_id]['outer_SFgas'] = np.nan
+        my_particle_data[sub_id]['far_SFgas']   = np.nan
+        my_particle_data[sub_id]['disk_SFgas']  = np.nan
+
+        my_particle_data[sub_id]['total_SFR'] = np.nan
+        my_particle_data[sub_id]['inner_SFR'] = np.nan
+        my_particle_data[sub_id]['outer_SFR'] = np.nan
+        my_particle_data[sub_id]['far_SFR']   = np.nan
+        my_particle_data[sub_id]['disk_SFR']  = np.nan
+
+        my_particle_data[sub_id]['total_SFE'] = np.nan
+        my_particle_data[sub_id]['inner_SFE'] = np.nan
+        my_particle_data[sub_id]['outer_SFE'] = np.nan
+        my_particle_data[sub_id]['far_SFE']   = np.nan
+        my_particle_data[sub_id]['disk_SFE']  = np.nan
                                    
     sx = scoords[:,0]
     sy = scoords[:,1]
@@ -220,11 +245,35 @@ particle_lst = comm.gather(my_particle_data, root=0)
 
 if rank==0:
     
+    # Assemble full dictionary from components
     all_particle_data = {}
     for dic in particle_lst:
         for k,v in dic.items():
             all_particle_data[k] = v
 
-    with open(folder+"parent_particle_data.pkl","wb") as f:
-        pickle.dump(all_particle_data,f)
+    # Save dictionary to binary pickle
+    #with open(folder+"parent_particle_data.pkl","wb") as f:
+    #    pickle.dump(all_particle_data,f)
 
+    # Save dictionary to CSV
+    names = [('id',int)]
+    names.extend([(s,float) if s!='satellite' else (s, bool) 
+                  for s in data[sub_id].keys()])
+
+    d = np.recarray(len(all_particle_data), names)
+    names = np.array(names) # from list of tuples for ease of use
+
+    for i, sub in enumerate(all_particle_data.items()):
+        sub_id, sub_dict = sub
+        d[i]['id'] = sub_id
+        for name in names[:,0]:
+
+            if name=='id':
+                continue
+
+            try:
+                d[i][name] = sub_dict[name].value
+            except AttributeError:
+                d[i][name] = sub_dict[name]
+
+    np.savetxt('parent_particle_data.csv', d, header=', '.join(names[:,0]))
