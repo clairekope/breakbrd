@@ -1,6 +1,7 @@
 import requests
 import numpy as np
 import argparse
+import warnings
 
 # Are we using MPI? If yes, we must set up MPI runtime first
 try:
@@ -32,7 +33,7 @@ try:
 
         return subset
 except ImportError: # no mpi4py
-    pass # just don't define scatter_work and other MPI comm variables
+    warnings.warn("mpi4py not imported", RuntimeWarning)
 
 
 # Helper functions

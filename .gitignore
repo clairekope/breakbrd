@@ -8,6 +8,3 @@ __pycache__/
 *.png
 *.pyc
 time_table_Illustris.dat
-spectra/
-*mergers/
-group_data/
