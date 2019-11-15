@@ -97,8 +97,8 @@ for sub_id in my_subs[good_ids]:
         # Old disk definition is np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
         # with rhalfstar redefined every halo
         
-        # full is for M_r cut, which we're no longer doing
-        #regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
+        # full is good for matching observational photometry
+        regions['full'] = lambda r: np.ones(r.shape, dtype=bool)
 
     # If we downloaded the cutouts, load the one for our subhalo
     if not args.local:
