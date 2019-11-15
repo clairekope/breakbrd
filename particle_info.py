@@ -14,6 +14,9 @@ import astropy.units as u
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import * 
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 z = args.z
 a0 = 1/(1+z)
 
@@ -55,6 +58,8 @@ dthresh = 6.4866e-4 # 0.13 cm^-3 in code units -> true for TNG?
 good_ids = np.where(my_subs > -1)[0]
 
 for sub_id in my_subs[good_ids]:
+
+    print(f"{rank}: {sub_id}", flush=True)
 
     # Get half mass radius
     sub = get(url_sbhalos+str(sub_id))
@@ -258,7 +263,7 @@ if rank==0:
     # Save dictionary to CSV
     names = [('id',int)]
     names.extend([(s,float) if s!='satellite' else (s, bool) 
-                  for s in data[sub_id].keys()])
+                  for s in all_particle_data[sub_id].keys()])
 
     d = np.recarray(len(all_particle_data), names)
     names = np.array(names) # from list of tuples for ease of use
@@ -276,4 +281,4 @@ if rank==0:
             except AttributeError:
                 d[i][name] = sub_dict[name]
 
-    np.savetxt('parent_particle_data.csv', d, header=', '.join(names[:,0]))
+    np.savetxt(folder+'parent_particle_data.csv', d, header=', '.join(names[:,0]))

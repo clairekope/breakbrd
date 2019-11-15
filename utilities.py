@@ -38,11 +38,19 @@ except ImportError: # no mpi4py
 
 # Helper functions
 def get(path, params=None, fpath=""):
+    
+    attempt = 1
+
     # make HTTP GET request to path
     headers = {"api-key":"5309619565f744f9248320a886c59bec"}
     r = requests.get(path, params=params, headers=headers)
+    
+    while r.status_code==503: # Server Error; try again
+        attempt += 1
+        print(f"Error 503 for {path}; attempt {attempt}", flush=True)
+        r = requests.get(path, params=params, headers=headers)
 
-    # raise exception if response code is not HTTP SUCCESS (200)
+    # raise exception for other response codes that aren't HTTP SUCCESS (200)
     r.raise_for_status()
 
     if r.headers['content-type'] == 'application/json':
