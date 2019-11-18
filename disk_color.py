@@ -1,5 +1,4 @@
 from __future__ import print_function, division
-import pickle
 import numpy as np
 # Functions for getting r-band mag of the halo and g-r color in the disk
 from get_magnitudes import *
@@ -11,10 +10,7 @@ z = args.z
 a0 = 1/(1+z)
 
 if rank == 0:
-    with open(folder+'parent_particle_data.pkl','rb') as f:
-        parent = pickle.load(f)
-
-    subhalo_ids = np.array([k for k in parent.keys()], dtype=np.int32)
+    subhalo_ids = np.genfromtxt(folder+'parent_particle_data.pkl', usecols=0).astype(np.int32)
 
 else:
     subhalo_ids = None

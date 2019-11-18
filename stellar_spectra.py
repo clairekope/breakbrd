@@ -1,5 +1,4 @@
 import fsps
-import pickle
 import sys
 import os
 import h5py
@@ -38,9 +37,8 @@ sp.params['imf_type'] = 1 # Chabrier (2003)
 
 if rank==0:
 
-    with open(folder+"parent_particle_data.pkl","rb") as f:
-        part_data = pickle.load(f)
-    sub_list = np.array([k for k in part_data.keys()])
+    part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
+    sub_list = part_data['id'].astype(np.int32)
 
     if not inst:
         del part_data
@@ -80,8 +78,8 @@ dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports
 # Because scattered arrays have to be the same size, they are padded with -1
 good_ids = np.where(my_subs > -1)[0]
 
-regions = {'inner': lambda r: r < 2.0 * u.kpc}
-
+#regions = {'inner': lambda r: r < 2.0 * u.kpc}
+regions={}
 for sub_id in my_subs[good_ids]:
 
     sub = get(url_sbhalos + str(sub_id))
@@ -93,7 +91,7 @@ for sub_id in my_subs[good_ids]:
     #     continue 
 
     if more_regions: 
-        regions['disk'] = lambda r: r > 2.0*u.kpc 
+        #regions['disk'] = lambda r: r > 2.0*u.kpc 
         # Old disk definition is np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
         # with rhalfstar redefined every halo
         

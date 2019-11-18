@@ -1,4 +1,3 @@
-import pickle
 import h5py
 import sys
 import os
@@ -255,10 +254,6 @@ if rank==0:
     for dic in particle_lst:
         for k,v in dic.items():
             all_particle_data[k] = v
-
-    # Save dictionary to binary pickle
-    #with open(folder+"parent_particle_data.pkl","wb") as f:
-    #    pickle.dump(all_particle_data,f)
 
     # Save dictionary to CSV
     names = [('id',int)]
