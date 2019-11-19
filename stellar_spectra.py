@@ -78,8 +78,8 @@ dt = time_bins[1:] - time_bins[:-1] # if we change to unequal bins this supports
 # Because scattered arrays have to be the same size, they are padded with -1
 good_ids = np.where(my_subs > -1)[0]
 
-#regions = {'inner': lambda r: r < 2.0 * u.kpc}
-regions={}
+regions = {'inner': lambda r: r < 2.0 * u.kpc}
+
 for sub_id in my_subs[good_ids]:
 
     sub = get(url_sbhalos + str(sub_id))
@@ -91,7 +91,7 @@ for sub_id in my_subs[good_ids]:
     #     continue 
 
     if more_regions: 
-        #regions['disk'] = lambda r: r > 2.0*u.kpc 
+        regions['disk'] = lambda r: r > 2.0*u.kpc 
         # Old disk definition is np.logical_and(2.0*u.kpc < r, r < 2*rhalfstar)
         # with rhalfstar redefined every halo
         
