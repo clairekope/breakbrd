@@ -45,7 +45,7 @@ def get(path, params=None, fpath=""):
     headers = {"api-key":"5309619565f744f9248320a886c59bec"}
     r = requests.get(path, params=params, headers=headers)
     
-    while r.status_code==503: # Server Error; try again
+    while r.status_code==503 or r.status_code==502: # Server Error; try again
         attempt += 1
         print(f"Error 503 for {path}; attempt {attempt}", flush=True)
         r = requests.get(path, params=params, headers=headers)
