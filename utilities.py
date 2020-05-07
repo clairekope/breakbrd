@@ -150,4 +150,8 @@ else:
         snapnum = 91
         folder = 'z01_TNG/'
 
+    elif args.z==0.03:
+        snapnum = 96
+        folder = 'z003_TNG/'
+        
 url_sbhalos = url_dset + "snapshots/" + str(snapnum) + "/subhalos/"
