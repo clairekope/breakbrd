@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 from astropy.io import fits
 from astropy import units as u
 from astropy import constants as c
-from photutils import CircularAnnulus, aperture_photometry
+#from photutils import CircularAnnulus, aperture_photometry
 
 from utilities import * #get, url_sbhalos, args, folder, littleh
 
