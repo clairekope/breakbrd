@@ -10,7 +10,7 @@ z = args.z
 a0 = 1/(1+z)
 
 if rank == 0:
-    subhalo_ids = np.genfromtxt(folder+'parent_particle_data.pkl', usecols=0).astype(np.int32)
+    subhalo_ids = np.genfromtxt(folder+'parent_particle_data.csv', usecols=0).astype(np.int32)
 
 else:
     subhalo_ids = None

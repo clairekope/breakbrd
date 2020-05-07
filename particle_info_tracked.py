@@ -152,7 +152,7 @@ if rank==0:
         for k,v in dic.items():
             all_particle_data[k] = v
 
-    with open(folder+"tracked_particle_data_{}.pkl".format(
+    with open(folder+"tracked_particle_data_{}.csv".format(
             "z01ATz00" if args.z==0.0 else "z00ATz01"),"wb") as f:
         pickle.dump(all_particle_data,f)
 
