@@ -82,8 +82,8 @@ def periodic_centering(x, center, boxsize):
 parser = argparse.ArgumentParser(
     description="Specify Illustris version, redshift, and analysis specifications."
                                 )
-parser.add_argument('z', type=float, choices=[0.0, 0.1, 0.5], action="store",
-                    help='Redshift; only 0.0 or 0.5 (or 0.1 for TNG) are currently supported')
+parser.add_argument('z', type=float, choices=[0.0, 0.03, 0.1, 0.5], action="store",
+                    help='Redshift; only 0.0 or 0.5 (or 0.03 or 0.1 for TNG) are currently supported')
 
 #parser.add_argument('-p','--parent', action='store_true', dest='parent',
 #                    help='Process parent sample')
