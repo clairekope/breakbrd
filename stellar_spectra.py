@@ -48,6 +48,7 @@ else:
         part_data = None
                                    
 my_subs = scatter_work(sub_list, rank, size)
+sub_list = comm.bcast(sub_list, root=0)
 if inst:
     part_data = comm.bcast(part_data, root=0)
 
@@ -81,6 +82,8 @@ good_ids = np.where(my_subs > -1)[0]
 regions = {'inner': lambda r: r < 2.0 * u.kpc}
 
 for sub_id in my_subs[good_ids]:
+
+    sub_ind = np.where(sub_list == sub_id)[0] # array
 
     sub = get(url_sbhalos + str(sub_id))
 
@@ -172,9 +175,9 @@ for sub_id in my_subs[good_ids]:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
                 try:
                     if reg_name=='inner':
-                        sfr[-1] += part_data[sub_id]['inner_SFR'].value # Msun/yr
+                        sfr[-1] += part_data[sub_ind]['inner_SFR'].value # Msun/yr
                     elif reg_name=='disk':
-                        sfr[-1] += part_data[sub_id]['disk_SFR'].value
+                        sfr[-1] += part_data[sub_ind]['disk_SFR'].value
                 except KeyError: # This subhalo has no instantaneous SFR
                     pass
 
