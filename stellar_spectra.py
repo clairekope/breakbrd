@@ -180,8 +180,11 @@ for sub_id in my_subs[good_ids]:
                         sfr[-1] += part_data[sub_ind]['disk_SFR'].value
                 except KeyError: # This subhalo has no instantaneous SFR
                     pass
-
-            sp.set_tabular_sfh(time_avg, sfr)
+            try:
+                sp.set_tabular_sfh(time_avg, sfr)
+            except AssertionError:
+                print("Subhalo {:d} raises FSPS SFR error".format(sub_id)) 
+                continue
             wave, spec = sp.get_spectrum(tage=timenow)
             spec_z[i] = spec
 
