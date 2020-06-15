@@ -25,7 +25,10 @@ for sub_id in halo_subset[good_ids]:
     subhalo = get(url_sbhalos + str(sub_id))
 
     if args.mock:
-        gr_color = gr_from_spectra(sub_id)
+        try:
+            gr_color = gr_from_spectra(sub_id)
+        except OSError:
+            gr_color = np.nan
         my_gr[sub_id] = gr_color
 
     else:
