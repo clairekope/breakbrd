@@ -175,16 +175,14 @@ for sub_id in my_subs[good_ids]:
                 # Add instantaneous SFR from gas to last bin (i.e., now)
                 try:
                     if reg_name=='inner':
-                        sfr[-1] += part_data[sub_ind]['inner_SFR'].value # Msun/yr
+                        sfr[-1] += part_data[sub_ind]['inner_SFR'] # Msun/yr
                     elif reg_name=='disk':
-                        sfr[-1] += part_data[sub_ind]['disk_SFR'].value
+                        sfr[-1] += part_data[sub_ind]['disk_SFR']
                 except KeyError: # This subhalo has no instantaneous SFR
                     pass
-            try:
-                sp.set_tabular_sfh(time_avg, sfr)
-            except AssertionError:
-                print("Subhalo {:d} raises FSPS SFR error".format(sub_id)) 
-                continue
+
+            sp.set_tabular_sfh(time_avg, sfr)
+
             wave, spec = sp.get_spectrum(tage=timenow)
             spec_z[i] = spec
 
