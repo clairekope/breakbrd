@@ -35,7 +35,7 @@ if rank==0:
     sub_ids = np.array([sub['id'] for sub in cut1['results']], dtype='i')
 
     if args.local:
-        cat = readsubfHDF5.subfind_catalog(args.local, snapnum, 
+        cat = readsubfHDF5.subfind_catalog(args.local, snapnum, #grpcat=False, subcat=False,
                                            keysel=['GroupFirstSub','SubhaloGrNr'])
         sat = np.zeros(cat.SubhaloGrNr.size, dtype=bool)
         sat[sub_ids] = (sub_ids != cat.GroupFirstSub[cat.SubhaloGrNr[sub_ids]])
@@ -101,7 +101,7 @@ for sub_id in my_subs[good_ids]:
             # Gas
             coords = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                        "POS ", 0, -1, sub_id, long_ids=True,
-                                       double_output=False).astype("float32")
+                                           double_output=False).astype("float32")
             mass = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                      "MASS", 0, -1, sub_id, long_ids=True,
                                      double_output=False).astype("float32")
