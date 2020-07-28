@@ -15,6 +15,8 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
+rbins = np.logspace(-1, np.log10(300), 151) 
+
 if rank==0:
 
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
@@ -101,7 +103,18 @@ if True:
         r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
 
         mass = mass * 1e10 / littleh * u.Msun
-    
+
+        
+        rbinner = np.digitize(r.value, rbins) # 0 & len(rbins) are under/overflow
+        binned_r = rbins[:-1] + np.diff(rbins) 
+        binned_ent = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+
+        for i in range(1, rbins.size):
+            this_bin = rbinner==i
+            if np.sum(mass[this_bin]) != 0:
+                binned_ent[i-1] = np.average(ent[this_bin],
+                                             weights=np.log10(mass[this_bin]))
+        
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
 
