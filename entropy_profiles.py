@@ -15,9 +15,6 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-nbins = 51
-
-
 if rank==0:
 
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
@@ -34,16 +31,13 @@ boxsize = get(url_dset)['boxsize']
 z = args.z
 a0 = 1/(1+z)
 
-radial_bins = np.linspace(0,2,nbins)
-radii = radial_bins[:-1] + np.diff(radial_bins)
-
 good_ids = np.where(my_subs > -1)[0]
 my_profiles = {}
 
-for sub_id in my_subs[good_ids]:
+#for sub_id in my_subs[good_ids]:
+sub_id = 587771
+if True:
     sub = get(url_sbhalos + str(sub_id))
-    vmax = sub['vmax'] * u.km/u.s
-    vmax_rad = sub['vmaxrad'] * u.kpc * a0/littleh
 
     gas = True
     if not args.local:
@@ -55,6 +49,7 @@ for sub_id in my_subs[good_ids]:
             with h5py.File(gas_file) as f:
                 coords = f['PartType0']['Coordinates'][:,:]
                 dens = f['PartType0']['Density'][:]
+                mass = f['PartType0']['Masses'][:]
                 inte = f['PartType0']['InternalEnergy'][:]
                 elec = f['PartType0']['ElectronAbundance'][:]
         except KeyError:
@@ -70,6 +65,9 @@ for sub_id in my_subs[good_ids]:
                                            double_output=False).astype("float32")
             dens = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                          "RHO ", 0, -1, sub_id, long_ids=True,
+                                         double_output=False).astype("float32")
+            mass = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+                                         "MASS", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
             inte = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                          "U   ", 0, -1, sub_id, long_ids=True,
@@ -101,47 +99,32 @@ for sub_id in my_subs[good_ids]:
         y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * a0/littleh
         z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * a0/littleh
         r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
+
+        mass = mass * 1e10 / littleh * u.Msun
     
-        # assuming modified NFW used in Voit 2019 so I can use his scalings
-        v200 = vmax / (200*u.km/u.s)
-        r200 = 237*u.kpc * v200
+#     else: # no gas
+#         my_profiles[sub_id] = np.nan
 
-        if r200 <= vmax_rad:
-            print(sub_id, "bad assumption for virial rad"); sys.stdout.flush()
+# profile_list = comm.gather(my_profiles, root=0)
 
-        r_scale = r/r200
+# if rank==0:
 
-        prof = binned_statistic(r_scale, 
-                                ent.to('eV cm^2', 
-                                       equivalencies=u.temperature_energy()), 
-                                'mean', 
-                                radial_bins)
+#     all_profiles = np.zeros( (len(sub_list), nbins) ) # 1 id col, nbins-1 data col
+#     i=0
+#     for dic in profile_list:
+#         for k,v in dic.items():
+#             all_profiles[i,0] = k
+#             all_profiles[i,1:] = v
+#             i+=1
 
-        my_profiles[sub_id] = prof[0]
+#     sort = np.argsort(all_profiles[:,0])
 
-    else: # no gas
-        my_profiles[sub_id] = np.nan*np.ones(nbins-1)
+#     header = "SubID"
+#     for r in radii:
+#         header += " {:.2f}".format(r)
 
-profile_list = comm.gather(my_profiles, root=0)
-
-if rank==0:
-
-    all_profiles = np.zeros( (len(sub_list), nbins) ) # 1 id col, nbins-1 data col
-    i=0
-    for dic in profile_list:
-        for k,v in dic.items():
-            all_profiles[i,0] = k
-            all_profiles[i,1:] = v
-            i+=1
-
-    sort = np.argsort(all_profiles[:,0])
-
-    header = "SubID"
-    for r in radii:
-        header += " {:.2f}".format(r)
-
-    np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
-               delimiter=',', header=header)
+#     np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
+#                delimiter=',', header=header)
 
     
         
