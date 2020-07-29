@@ -17,6 +17,13 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 rbins = np.logspace(-1, np.log10(300), 151) 
 
+def ent_fit(r, K0, K1, alpha):
+    """
+    r in kpc, K0 & K1 in eV*cm^2
+    """
+    return K0 + K1*np.power(r/10, alpha)
+
+
 if rank==0:
 
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
@@ -93,6 +100,7 @@ if True:
         dens = dens * 1e10*u.Msun/littleh * (u.kpc*a0/littleh)**-3
         ne = elec * X_H*dens/m_p
         ent = k_B * temp/ne**(gamma-1)
+        ent = ent.to('eV cm^2', equivalencies=u.temperature_energy())
 
         x = coords[:,0]
         y = coords[:,1]
@@ -108,13 +116,25 @@ if True:
         rbinner = np.digitize(r.value, rbins) # 0 & len(rbins) are under/overflow
         binned_r = rbins[:-1] + np.diff(rbins) 
         binned_ent = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
-
+        binned_std = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+        
         for i in range(1, rbins.size):
             this_bin = rbinner==i
             if np.sum(mass[this_bin]) != 0:
                 binned_ent[i-1] = np.average(ent[this_bin],
-                                             weights=np.log10(mass[this_bin]))
+                                             weights=mass[this_bin])
+                binned_std[i-1] = np.sqrt(np.average(
+                    np.power(ent[this_bin]-binned_end[i-1], 2),
+                    weights=mass[this_bin])
+                )
+
+        params, cov = curve_fit(ent_fit, binned_r, binned_ent, check_finite=False,
+                                sigma=binned_ent, absolute_sigma=True)
+
         
+
+        
+                
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
 
