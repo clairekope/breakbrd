@@ -128,12 +128,34 @@ if True:
                     weights=mass[this_bin])
                 )
 
-        params, cov = curve_fit(ent_fit, binned_r, binned_ent, check_finite=False,
-                                sigma=binned_ent, absolute_sigma=True)
+        mask = np.isfinite(binned_ent) 
+        params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
+                                sigma=binned_ent[mask], absolute_sigma=True)
 
         
+        from scipy.stats import binned_statistic_2d
 
-        
+        rbins = np.logspace(-1, np.log10(300), 151)
+        Kbins = np.logspace(0, np.log10(1.5e5), 101)
+
+        stat, rbins, Kbins, binnum = binned_statistic_2d(r, ent, mass, 
+                                                         bins=(rbins,Kbins))
+        mesh = plt.pcolormesh(rbins, Kbins, stat.T,cmap='magma')
+        plt.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
+                         color='C0', alpha=0.15)
+        plt.plot(binned_r, binned_ent+binned_std, '--', color='C0')
+        plt.plot(binned_r, binned_ent-binned_std, '--', color='C0')
+        plt.xscale('log')
+        plt.yscale('log')
+
+        plt.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
+                         color='C0', alpha=0.4)
+        plt.plot(binned_r, binned_ent)
+        plt.plot(binned_r, ent_fit(binned_r, *params))
+
+        cb = plt.colorbar(mesh)
+        cb.set_label('<Mass> (Msun)')
+
                 
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
