@@ -6,7 +6,7 @@ import snapHDF5
 import numpy as np
 import astropy.units as u
 from astropy.constants import m_p, k_B
-from scipy.stats import binned_statistic
+from scipy.optimize import curve_fit
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import *
@@ -124,7 +124,7 @@ if True:
                 binned_ent[i-1] = np.average(ent[this_bin],
                                              weights=mass[this_bin])
                 binned_std[i-1] = np.sqrt(np.average(
-                    np.power(ent[this_bin]-binned_end[i-1], 2),
+                    np.power(ent[this_bin]-binned_ent[i-1], 2),
                     weights=mass[this_bin])
                 )
 
