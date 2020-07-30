@@ -1,3 +1,5 @@
+import matplotlib; matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import sys
 import h5py
 import readsubfHDF5
@@ -29,11 +31,16 @@ if rank==0:
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
     sub_list = part_data['id'].astype(np.int32)
 
+    np.random.seed(6841325)
+    subset = np.random.choice(sub_list, size=100, replace=False)
+    
     del part_data
 else:
+    subset = None
     sub_list = None
                                    
-my_subs = scatter_work(sub_list, rank, size)
+#my_subs = scatter_work(sub_list, rank, size)
+my_subs = scatter_work(subset, rank, size)
 sub_list = comm.bcast(sub_list, root=0)
 
 boxsize = get(url_dset)['boxsize']
@@ -43,9 +50,7 @@ a0 = 1/(1+z)
 good_ids = np.where(my_subs > -1)[0]
 my_profiles = {}
 
-#for sub_id in my_subs[good_ids]:
-sub_id = 587771
-if True:
+for sub_id in my_subs[good_ids]:
     sub = get(url_sbhalos + str(sub_id))
 
     gas = True
@@ -95,7 +100,7 @@ if True:
         X_H = 0.76
         gamma = 5./3.
         mu = 4/(1 + 3*X_H + 4*X_H*elec) * m_p
-        temp = ( (gamma-1) * inte/k_B * mu * 1e10*u.erg/u.g ).to('K')#u.eV, equivalencies=u.temperature_energy())
+        temp = ( (gamma-1) * inte/k_B * mu * 1e10*u.erg/u.g ).to('K')
 
         dens = dens * 1e10*u.Msun/littleh * (u.kpc*a0/littleh)**-3
         ne = elec * X_H*dens/m_p
@@ -129,8 +134,13 @@ if True:
                 )
 
         mask = np.isfinite(binned_ent) 
-        params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
-                                sigma=binned_ent[mask], absolute_sigma=True)
+
+
+        try:
+            params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
+                                    sigma=binned_ent[mask], absolute_sigma=True)
+        except RuntimeError:
+            continue # could not fit
 
         
         from scipy.stats import binned_statistic_2d
@@ -140,23 +150,26 @@ if True:
 
         stat, rbins, Kbins, binnum = binned_statistic_2d(r, ent, mass, 
                                                          bins=(rbins,Kbins))
-        mesh = plt.pcolormesh(rbins, Kbins, stat.T,cmap='magma')
-        plt.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
+
+        fig, ax = plt.subplots()
+
+        mesh = ax.pcolormesh(rbins, Kbins, stat.T,cmap='magma')
+        ax.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
                          color='C0', alpha=0.15)
-        plt.plot(binned_r, binned_ent+binned_std, '--', color='C0')
-        plt.plot(binned_r, binned_ent-binned_std, '--', color='C0')
-        plt.xscale('log')
-        plt.yscale('log')
+        ax.plot(binned_r, binned_ent+binned_std, '--', color='C0')
+        ax.plot(binned_r, binned_ent-binned_std, '--', color='C0')
 
-        plt.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
-                         color='C0', alpha=0.4)
-        plt.plot(binned_r, binned_ent)
-        plt.plot(binned_r, ent_fit(binned_r, *params))
+        ax.plot(binned_r, binned_ent)
+        ax.plot(binned_r, ent_fit(binned_r, *params))
+        
+        ax.set_xscale('log')
+        ax.set_yscale('log')
 
-        cb = plt.colorbar(mesh)
+        cb = fig.colorbar(mesh)
         cb.set_label('<Mass> (Msun)')
 
-                
+        fig.savefig('{:d}_fit.png'.format(sub_id))
+        plt.close(fig)
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
 
