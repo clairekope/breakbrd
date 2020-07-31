@@ -9,6 +9,7 @@ import numpy as np
 import astropy.units as u
 from astropy.constants import m_p, k_B
 from scipy.optimize import curve_fit
+from scipy.stats import binned_statistic_2d
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import *
@@ -17,7 +18,7 @@ import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
-rbins = np.logspace(-1, np.log10(300), 151) 
+#rbins = np.logspace(-1, np.log10(300), 151) 
 
 def ent_fit(r, K0, K1, alpha):
     """
@@ -30,11 +31,14 @@ if rank==0:
 
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
     sub_list = part_data['id'].astype(np.int32)
+    sat = part_data['satellite'].astype(np.bool)
 
     np.random.seed(6841325)
-    subset = np.random.choice(sub_list, size=100, replace=False)
+    subset = np.random.choice(sub_list[~sat], size=100, replace=False)
     
     del part_data
+    del sat
+
 else:
     subset = None
     sub_list = None
@@ -52,6 +56,7 @@ my_profiles = {}
 
 for sub_id in my_subs[good_ids]:
     sub = get(url_sbhalos + str(sub_id))
+    rhalf = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
 
     gas = True
     if not args.local:
@@ -95,6 +100,10 @@ for sub_id in my_subs[good_ids]:
 
 
     if gas:
+        #
+        # Calculate Entropy
+        #
+
         # For conversion of internal energy to temperature, see
         # https://www.tng-project.org/data/docs/faq/#gen4
         X_H = 0.76
@@ -117,6 +126,29 @@ for sub_id in my_subs[good_ids]:
 
         mass = mass * 1e10 / littleh * u.Msun
 
+        #
+        # Make bins for r & K; plot mass dist
+        #
+
+        rbins = np.logspace(np.log10(r.value.min()), np.log10(r.value.max()))
+        Kbins = np.logspace(np.log10(ent.value.min()), np.log10(ent.value.max()))
+
+        stat, rbins, Kbins, binnum = binned_statistic_2d(r, ent, mass, 
+                                                         bins=(rbins,Kbins))
+
+        fig, ax = plt.subplots()
+
+        mesh = ax.pcolormesh(rbins, Kbins, stat.T,cmap='magma')
+
+        ax.set_xscale('log')
+        ax.set_yscale('log')
+
+        cb = fig.colorbar(mesh)
+        cb.set_label('<Mass> (Msun)')
+
+        #
+        # Find weighted radial profile
+        #
         
         rbinner = np.digitize(r.value, rbins) # 0 & len(rbins) are under/overflow
         binned_r = rbins[:-1] + np.diff(rbins) 
@@ -133,43 +165,37 @@ for sub_id in my_subs[good_ids]:
                     weights=mass[this_bin])
                 )
 
-        mask = np.isfinite(binned_ent) 
+        #
+        # Plot profile
+        #
 
+        # ax.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
+        #                  color='C0', alpha=0.15)
+        # ax.plot(binned_r, binned_ent+binned_std, '--', color='C0')
+        # ax.plot(binned_r, binned_ent-binned_std, '--', color='C0')
+
+        ax.plot(binned_r, binned_ent)
+
+        #
+        # Fit & plot
+        #
+
+        mask = np.isfinite(binned_ent) 
 
         try:
             params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
                                     sigma=binned_ent[mask], absolute_sigma=True)
-        except RuntimeError:
-            continue # could not fit
 
-        
-        from scipy.stats import binned_statistic_2d
+        except RuntimeError: # could not fit
+            fig.savefig('{:d}_fit.png'.format(sub_id))
+            plt.close(fig)
+            continue 
 
-        rbins = np.logspace(-1, np.log10(300), 151)
-        Kbins = np.logspace(0, np.log10(1.5e5), 101)
-
-        stat, rbins, Kbins, binnum = binned_statistic_2d(r, ent, mass, 
-                                                         bins=(rbins,Kbins))
-
-        fig, ax = plt.subplots()
-
-        mesh = ax.pcolormesh(rbins, Kbins, stat.T,cmap='magma')
-        ax.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
-                         color='C0', alpha=0.15)
-        ax.plot(binned_r, binned_ent+binned_std, '--', color='C0')
-        ax.plot(binned_r, binned_ent-binned_std, '--', color='C0')
-
-        ax.plot(binned_r, binned_ent)
         ax.plot(binned_r, ent_fit(binned_r, *params))
         
-        ax.set_xscale('log')
-        ax.set_yscale('log')
-
-        cb = fig.colorbar(mesh)
-        cb.set_label('<Mass> (Msun)')
-
         fig.savefig('{:d}_fit.png'.format(sub_id))
         plt.close(fig)
+
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
 
