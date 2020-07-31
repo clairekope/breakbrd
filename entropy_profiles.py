@@ -174,13 +174,15 @@ for sub_id in my_subs[good_ids]:
         # ax.plot(binned_r, binned_ent+binned_std, '--', color='C0')
         # ax.plot(binned_r, binned_ent-binned_std, '--', color='C0')
 
-        ax.plot(binned_r, binned_ent)
+        r_cut = binned_r > 2*rhalf.value
+        ax.plot(binned_r[r_cut], binned_ent[r_cut])
+        ax.axvline(2*rhalf.value, ls=':', color='k')
 
         #
         # Fit & plot
         #
 
-        mask = np.isfinite(binned_ent) 
+        mask = np.logical_and( np.isfinite(binned_ent), r_cut )
 
         try:
             params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
@@ -191,7 +193,7 @@ for sub_id in my_subs[good_ids]:
             plt.close(fig)
             continue 
 
-        ax.plot(binned_r, ent_fit(binned_r, *params))
+        ax.plot(binned_r[r_cut], ent_fit(binned_r[r_cut], *params))
         
         fig.savefig('{:d}_fit.png'.format(sub_id))
         plt.close(fig)
