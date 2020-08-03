@@ -19,8 +19,13 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
 #rbins = np.logspace(-1, np.log10(300), 151) 
+def ent_fit(r, K1, alpha):
+    """
+    r in kpc, K0 & K1 in eV*cm^2
+    """
+    return K1*np.power(r/10, alpha)
 
-def ent_fit(r, K0, K1, alpha):
+def ent_fit2(r, K0, K1, alpha):
     """
     r in kpc, K0 & K1 in eV*cm^2
     """
@@ -56,7 +61,8 @@ my_profiles = {}
 
 for sub_id in my_subs[good_ids]:
     sub = get(url_sbhalos + str(sub_id))
-    rhalf = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
+    rhalf_star = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
+    #rhalf_gas = sub["halfmassrad_gas"] * u.kpc * a0 / littleh
 
     gas = True
     if not args.local:
@@ -160,9 +166,10 @@ for sub_id in my_subs[good_ids]:
             if np.sum(mass[this_bin]) != 0:
                 binned_ent[i-1] = np.average(ent[this_bin],
                                              weights=mass[this_bin])
-                binned_std[i-1] = np.sqrt(np.average(
-                    np.power(ent[this_bin]-binned_ent[i-1], 2),
-                    weights=mass[this_bin])
+                binned_std[i-1] = np.sqrt(
+                    np.average(
+                        np.power(ent[this_bin]-binned_ent[i-1], 2),
+                        weights=mass[this_bin])
                 )
 
         #
@@ -174,9 +181,11 @@ for sub_id in my_subs[good_ids]:
         # ax.plot(binned_r, binned_ent+binned_std, '--', color='C0')
         # ax.plot(binned_r, binned_ent-binned_std, '--', color='C0')
 
-        r_cut = binned_r > rhalf.value
-        ax.plot(binned_r[r_cut], binned_ent[r_cut])
-        ax.axvline(rhalf.value, ls=':', color='k')
+        ax.errorbar(binned_r, binned_ent.value, yerr=binned_std.value)
+
+        r_cut = binned_r > 2*rhalf_star.value
+        ax.axvline(rhalf_star.value, ls=':', color='k')
+        ax.axvline(2*rhalf_star.value, ls=':', color='k')
 
         #
         # Fit & plot
@@ -185,16 +194,14 @@ for sub_id in my_subs[good_ids]:
         mask = np.logical_and( np.isfinite(binned_ent), r_cut )
 
         try:
+            params, cov = curve_fit(ent_fit2, binned_r[mask], binned_ent[mask],
+                                    sigma=binned_ent[mask], absolute_sigma=True)
+            ax.plot(binned_r[r_cut], ent_fit2(binned_r[r_cut], *params), color='C1')
+        except RuntimeError: # could not fit
             params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
                                     sigma=binned_ent[mask], absolute_sigma=True)
+            ax.plot(binned_r[r_cut], ent_fit(binned_r[r_cut], *params), color='C2')
 
-        except RuntimeError: # could not fit
-            fig.savefig('{:d}_fit.png'.format(sub_id))
-            plt.close(fig)
-            continue 
-
-        ax.plot(binned_r[r_cut], ent_fit(binned_r[r_cut], *params))
-        
         fig.savefig('{:d}_fit.png'.format(sub_id))
         plt.close(fig)
 
