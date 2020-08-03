@@ -174,9 +174,9 @@ for sub_id in my_subs[good_ids]:
         # ax.plot(binned_r, binned_ent+binned_std, '--', color='C0')
         # ax.plot(binned_r, binned_ent-binned_std, '--', color='C0')
 
-        r_cut = binned_r > 2*rhalf.value
+        r_cut = binned_r > rhalf.value
         ax.plot(binned_r[r_cut], binned_ent[r_cut])
-        ax.axvline(2*rhalf.value, ls=':', color='k')
+        ax.axvline(rhalf.value, ls=':', color='k')
 
         #
         # Fit & plot
