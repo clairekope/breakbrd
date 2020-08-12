@@ -6,7 +6,7 @@ import snapHDF5
 import numpy as np
 import astropy.units as u
 from astropy.constants import m_p, k_B
-from scipy.optimize import curve_fit
+from scipy.stats import binned_statistic_2d
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
 from utilities import *
@@ -14,14 +14,8 @@ from utilities import *
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-
-rbins = np.logspace(-1, np.log10(300), 151) 
-
-def ent_fit(r, K0, K1, alpha):
-    """
-    r in kpc, K0 & K1 in eV*cm^2
-    """
-    return K0 + K1*np.power(r/10, alpha)
+nbins = 100
+r_edges = np.logspace(-1, 0, nbins+1)
 
 
 if rank==0:
@@ -44,7 +38,7 @@ good_ids = np.where(my_subs > -1)[0]
 my_profiles = {}
 
 #for sub_id in my_subs[good_ids]:
-sub_id = 587771
+sub_id = 
 if True:
     sub = get(url_sbhalos + str(sub_id))
 
@@ -95,7 +89,7 @@ if True:
         X_H = 0.76
         gamma = 5./3.
         mu = 4/(1 + 3*X_H + 4*X_H*elec) * m_p
-        temp = ( (gamma-1) * inte/k_B * mu * 1e10*u.erg/u.g ).to('K')#u.eV, equivalencies=u.temperature_energy())
+        temp = ( (gamma-1) * inte/k_B * mu * 1e10*u.erg/u.g ).to('K')
 
         dens = dens * 1e10*u.Msun/littleh * (u.kpc*a0/littleh)**-3
         ne = elec * X_H*dens/m_p
@@ -112,51 +106,9 @@ if True:
 
         mass = mass * 1e10 / littleh * u.Msun
 
+
+        # TODO calculate r200 and bin K in scaled radial bins
         
-        rbinner = np.digitize(r.value, rbins) # 0 & len(rbins) are under/overflow
-        binned_r = rbins[:-1] + np.diff(rbins) 
-        binned_ent = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
-        binned_std = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
-        
-        for i in range(1, rbins.size):
-            this_bin = rbinner==i
-            if np.sum(mass[this_bin]) != 0:
-                binned_ent[i-1] = np.average(ent[this_bin],
-                                             weights=mass[this_bin])
-                binned_std[i-1] = np.sqrt(np.average(
-                    np.power(ent[this_bin]-binned_ent[i-1], 2),
-                    weights=mass[this_bin])
-                )
-
-        mask = np.isfinite(binned_ent) 
-        params, cov = curve_fit(ent_fit, binned_r[mask], binned_ent[mask],
-                                sigma=binned_ent[mask], absolute_sigma=True)
-
-        
-        from scipy.stats import binned_statistic_2d
-
-        rbins = np.logspace(-1, np.log10(300), 151)
-        Kbins = np.logspace(0, np.log10(1.5e5), 101)
-
-        stat, rbins, Kbins, binnum = binned_statistic_2d(r, ent, mass, 
-                                                         bins=(rbins,Kbins))
-        mesh = plt.pcolormesh(rbins, Kbins, stat.T,cmap='magma')
-        plt.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
-                         color='C0', alpha=0.15)
-        plt.plot(binned_r, binned_ent+binned_std, '--', color='C0')
-        plt.plot(binned_r, binned_ent-binned_std, '--', color='C0')
-        plt.xscale('log')
-        plt.yscale('log')
-
-        plt.fill_between(binned_r, binned_ent-binned_std, binned_ent+binned_std, 
-                         color='C0', alpha=0.4)
-        plt.plot(binned_r, binned_ent)
-        plt.plot(binned_r, ent_fit(binned_r, *params))
-
-        cb = plt.colorbar(mesh)
-        cb.set_label('<Mass> (Msun)')
-
-                
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
 
@@ -164,7 +116,7 @@ if True:
 
 # if rank==0:
 
-#     all_profiles = np.zeros( (len(sub_list), nbins) ) # 1 id col, nbins-1 data col
+#     all_profiles = np.zeros( (len(sub_list), nbins+1) )
 #     i=0
 #     for dic in profile_list:
 #         for k,v in dic.items():
@@ -181,5 +133,3 @@ if True:
 #     np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
 #                delimiter=',', header=header)
 
-    
-        
