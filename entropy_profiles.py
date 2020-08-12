@@ -1,3 +1,5 @@
+import matplotlib; matplotlib.use('agg')
+import matplotlib.pyplot as plt
 import sys
 import h5py
 import readsubfHDF5
@@ -5,7 +7,12 @@ import readhaloHDF5
 import snapHDF5
 import numpy as np
 import astropy.units as u
+<<<<<<< HEAD
 from astropy.constants import m_p, k_B, G
+=======
+from astropy.constants import m_p, k_B
+from scipy.optimize import curve_fit
+>>>>>>> 9f1ca7b74b46ed74bc0bd14bfe924e54dc8622b3
 from scipy.stats import binned_statistic_2d
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
@@ -13,6 +20,7 @@ from utilities import *
 
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 nbins = 100
 r_edges = np.logspace(-1, 0, nbins+1)
@@ -31,9 +39,11 @@ if rank==0:
     del sat
     
 else:
+    subset = None
     sub_list = None
                                    
-my_subs = scatter_work(sub_list, rank, size)
+#my_subs = scatter_work(sub_list, rank, size)
+my_subs = scatter_work(subset, rank, size)
 sub_list = comm.bcast(sub_list, root=0)
 
 boxsize = get(url_dset)['boxsize']
@@ -47,10 +57,11 @@ rhocrit = rhocrit.to(u.Msun/u.kpc**3)
 good_ids = np.where(my_subs > -1)[0]
 my_profiles = {}
 
-#for sub_id in my_subs[good_ids]:
-sub_id = 402017
-if True:
+for sub_id in my_subs[good_ids]:
+
     sub = get(url_sbhalos + str(sub_id))
+    rhalf_star = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
+    #rhalf_gas = sub["halfmassrad_gas"] * u.kpc * a0 / littleh
 
     gas = True
     if not args.local:
@@ -97,6 +108,10 @@ if True:
 
 
     if gas:
+        #
+        # Calculate Entropy
+        #
+
         # For conversion of internal energy to temperature, see
         # https://www.tng-project.org/data/docs/faq/#gen4
         X_H = 0.76
