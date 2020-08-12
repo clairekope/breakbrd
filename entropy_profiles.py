@@ -142,6 +142,3 @@ if rank==0:
 
     np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
                delimiter=',', header=header)
-
-    
-        
