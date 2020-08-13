@@ -138,15 +138,18 @@ for sub_id in my_subs[good_ids]:
         dm_z_rel = periodic_centering(dm_z, sub['pos_z'], boxsize) * u.kpc * a0/littleh
         dm_r = np.sqrt(dm_x_rel**2 + dm_y_rel**2 + dm_z_rel**2)
 
-        dm_rsort = np.sort(dm_r)
         # count DM particles inside a sphere to find density at that radius
-        dm_dens = 7.5e6*u.Msun*np.arange(1,dm_rsort.size+1) / np.power(dm_rsort,3)
+        dm_rsort = np.sort(dm_r)
+        dm_mass = 7.5e6 * u.Msun
+        dm_dens = dm_mass * np.arange(1,dm_rsort.size+1) / np.power(dm_rsort,3)
+
+        dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
 
         try:
             # pick first particle beyond density cutoff for r200. Density falls with r!
             r200 = dm_rsort[dm_dens < 200*rhocrit][0]
 
-            per_off = ( (mass.sum() - mass[r < r200].sum()) / mass.sum() ).value * 100
+            per_off = ( (dm_halo - dm_mass*(dm_r < r200).sum()) / dm_halo ).value * 100
             print(sub_id, per_off)
 
         except IndexError:
