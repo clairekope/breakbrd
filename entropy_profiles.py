@@ -7,12 +7,7 @@ import readhaloHDF5
 import snapHDF5
 import numpy as np
 import astropy.units as u
-<<<<<<< HEAD
 from astropy.constants import m_p, k_B, G
-=======
-from astropy.constants import m_p, k_B
-from scipy.optimize import curve_fit
->>>>>>> 9f1ca7b74b46ed74bc0bd14bfe924e54dc8622b3
 from scipy.stats import binned_statistic_2d
 # prep MPI environnment and import scatter_work(), get(), periodic_centering(),
 # CLI args container, url_dset, url_sbhalos, folder, snapnum, littleh, omegaL/M
@@ -143,14 +138,21 @@ for sub_id in my_subs[good_ids]:
         dm_z_rel = periodic_centering(dm_z, sub['pos_z'], boxsize) * u.kpc * a0/littleh
         dm_r = np.sqrt(dm_x_rel**2 + dm_y_rel**2 + dm_z_rel**2)
 
-        dm_rsort = np.sorted(dm_r)
+        dm_rsort = np.sort(dm_r)
         # count DM particles inside a sphere to find density at that radius
         dm_dens = 7.5e6*u.Msun*np.arange(1,dm_rsort.size+1) / np.power(dm_rsort,3)
-        # pick first particle beyond density cutoff for r200. Density falls with r!
-        r200 = dm_rsort[dm_dens < 200*rhocrit][0]
 
-        per_off = ( mass.sum() - (mass[r < r200].sum()) / mass.sum() ).value * 100
-        print(sub_id, per_off)
+        try:
+            # pick first particle beyond density cutoff for r200. Density falls with r!
+            r200 = dm_rsort[dm_dens < 200*rhocrit][0]
+
+            per_off = ( (mass.sum() - mass[r < r200].sum()) / mass.sum() ).value * 100
+            print(sub_id, per_off)
+
+        except IndexError:
+            print(sub_id, "No r200 found")
+            continue
+
 #     else: # no gas
 #         my_profiles[sub_id] = np.nan
 
