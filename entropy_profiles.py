@@ -19,26 +19,27 @@ warnings.simplefilter(action='ignore', category=FutureWarning)
 
 nbins = 100
 r_edges = np.logspace(-1, 0, nbins+1)
+binned_r = r_edges[:-1] + np.diff(r_edges)
 
 
 if rank==0:
 
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
     sub_list = part_data['id'].astype(np.int32)
-    sat = part_data['satellite'].astype(np.bool)
+    # sat = part_data['satellite'].astype(np.bool)
 
-    np.random.seed(6841325)
-    subset = np.random.choice(sub_list[sat], size=500, replace=False)
+    # np.random.seed(6841325)
+    # subset = np.random.choice(sub_list[sat], size=500, replace=False)
     
     del part_data
-    del sat
+    # del sat
     
 else:
-    subset = None
+    # subset = None
     sub_list = None
                                    
-#my_subs = scatter_work(sub_list, rank, size)
-my_subs = scatter_work(subset, rank, size)
+my_subs = scatter_work(sub_list, rank, size)
+# my_subs = scatter_work(subset, rank, size)
 sub_list = comm.bcast(sub_list, root=0)
 
 boxsize = get(url_dset)['boxsize']
@@ -46,17 +47,16 @@ z = args.z
 a0 = 1/(1+z)
 
 H0 = littleh * 100 * u.km/u.s/u.Mpc
-rhocrit = 3*H0**2/(8*np.pi*G)
-rhocrit = rhocrit.to(u.Msun/u.kpc**3)
 
 good_ids = np.where(my_subs > -1)[0]
 my_profiles = {}
 
 for sub_id in my_subs[good_ids]:
 
+    my_profiles[sub_id] = {}
+
     sub = get(url_sbhalos + str(sub_id))
-    rhalf_star = sub["halfmassrad_stars"] * u.kpc * a0 / littleh
-    #rhalf_gas = sub["halfmassrad_gas"] * u.kpc * a0 / littleh
+    dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
 
     gas = True
     if not args.local:
@@ -72,7 +72,7 @@ for sub_id in my_subs[good_ids]:
                 mass = f['PartType0']['Masses'][:]
                 inte = f['PartType0']['InternalEnergy'][:]
                 elec = f['PartType0']['ElectronAbundance'][:]
-                dm_coords = f['PartType1']['Coordinates'][:]
+
         except KeyError:
             gas = False
 
@@ -96,8 +96,7 @@ for sub_id in my_subs[good_ids]:
             elec = readhaloHDF5.readhalo(args.local, "snap", snapnum,
                                          "NE  ", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
-            dm_coords = readhaloHDF5.readhalo(args.local, "snap", snapnum,
-                                              "POS ", 1, -1, sub_id, long_ids=True)
+
         except AttributeError:
             gas = False
 
@@ -130,53 +129,51 @@ for sub_id in my_subs[good_ids]:
         mass = mass * 1e10 / littleh * u.Msun
 
         # TODO calculate r200 and bin K in scaled radial bins
-        dm_x = dm_coords[:,0]
-        dm_y = dm_coords[:,1]
-        dm_z = dm_coords[:,2]
-        dm_x_rel = periodic_centering(dm_x, sub['pos_x'], boxsize) * u.kpc * a0/littleh
-        dm_y_rel = periodic_centering(dm_y, sub['pos_y'], boxsize) * u.kpc * a0/littleh
-        dm_z_rel = periodic_centering(dm_z, sub['pos_z'], boxsize) * u.kpc * a0/littleh
-        dm_r = np.sqrt(dm_x_rel**2 + dm_y_rel**2 + dm_z_rel**2)
+        r200 = (G*dm_halo/(100*H0**2))**(1/3)
+        r200 = r200.to('kpc')
 
-        # count DM particles inside a sphere to find density at that radius
-        dm_rsort = np.sort(dm_r)
-        dm_mass = 7.5e6 * u.Msun
-        dm_dens = dm_mass * np.arange(1,dm_rsort.size+1) / np.power(dm_rsort,3)
+        r_scale = (r/r200).value
+        rbinner = np.digitize(r_scale, r_edges)
+        binned_ent = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+        binned_std = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
 
-        dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
+        for i in range(1, r_edges.size):
+            this_bin = rbinner==i
+            if np.sum(mass[this_bin]) != 0: # are there particles in this bin
+                binned_ent[i-1] = np.average(ent[this_bin],
+                                             weights = mass[this_bin])
+                binned_std[i-1] = np.sqrt(
+                    np.average(
+                        np.power(ent[this_bin]-binned_ent[i-1], 2),
+                        weights = mass[this_bin])
+                )
 
-        try:
-            # pick first particle beyond density cutoff for r200. Density falls with r!
-            r200 = dm_rsort[dm_dens < 200*rhocrit][0]
+        my_profiles[sub_id]['average'] = binned_ent
+        my_profiles[sub_id]['std_dev'] = binned_std
 
-            per_off = ( (dm_halo - dm_mass*(dm_r < r200).sum()) / dm_halo ).value * 100
-            print(sub_id, per_off)
+    else: # no gas
+        my_profiles[sub_id]['average'] = np.nan
+        my_profiles[sub_id]['std_dev'] = np.nan
 
-        except IndexError:
-            print(sub_id, "No r200 found")
-            continue
+profile_list = comm.gather(my_profiles, root=0)
 
-#     else: # no gas
-#         my_profiles[sub_id] = np.nan
+if rank==0:
 
-# profile_list = comm.gather(my_profiles, root=0)
+    all_profiles = np.zeros( (len(sub_list), 2*nbins+1) )
+    i=0
+    for dic in profile_list:
+        for k,v in dic.items():
+            all_profiles[i,0] = k
+            all_profiles[i,1::2] = v['average']
+            all_profiles[i,2::2] = v['std_dev']
+            i+=1
 
-# if rank==0:
+    sort = np.argsort(all_profiles[:,0])
 
-#     all_profiles = np.zeros( (len(sub_list), nbins+1) )
-#     i=0
-#     for dic in profile_list:
-#         for k,v in dic.items():
-#             all_profiles[i,0] = k
-#             all_profiles[i,1:] = v
-#             i+=1
+    header = "SubID"
+    for r in binned_r:
+        header += "   {:.4f} avg stddev".format(r)
 
-#     sort = np.argsort(all_profiles[:,0])
-
-#     header = "SubID"
-#     for r in radii:
-#         header += " {:.2f}".format(r)
-
-#     np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
-#                delimiter=',', header=header)
+    np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
+               delimiter=',', header=header)
 
