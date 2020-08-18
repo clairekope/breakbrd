@@ -58,6 +58,8 @@ for sub_id in my_subs[good_ids]:
     sub = get(url_sbhalos + str(sub_id))
     dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
 
+    my_profiles[sub_id]['dm_mass'] = dm_halo
+
     gas = True
     if not args.local:
         # Read particle data
@@ -159,18 +161,19 @@ profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_profiles = np.zeros( (len(sub_list), 2*nbins+1) )
+    all_profiles = np.zeros( (len(sub_list), 2*nbins+2) )
     i=0
     for dic in profile_list:
         for k,v in dic.items():
             all_profiles[i,0] = k
-            all_profiles[i,1::2] = v['average']
-            all_profiles[i,2::2] = v['std_dev']
+            all_profiles[i,1] = v['dm_mass'].value
+            all_profiles[i,2::2] = v['average']
+            all_profiles[i,3::2] = v['std_dev']
             i+=1
 
     sort = np.argsort(all_profiles[:,0])
 
-    header = "SubID"
+    header = "SubID   DMmass"
     for r in binned_r:
         header += "   {:.4f} avg stddev".format(r)
 
