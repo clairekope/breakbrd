@@ -137,25 +137,22 @@ for sub_id in my_subs[good_ids]:
         r_scale = (r/r200).value
         rbinner = np.digitize(r_scale, r_edges)
         binned_ent = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
-        binned_std = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+        binned_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
 
         for i in range(1, r_edges.size):
             this_bin = rbinner==i
             if np.sum(mass[this_bin]) != 0: # are there particles in this bin
                 binned_ent[i-1] = np.average(ent[this_bin],
                                              weights = mass[this_bin])
-                binned_std[i-1] = np.sqrt(
-                    np.average(
-                        np.power(ent[this_bin]-binned_ent[i-1], 2),
-                        weights = mass[this_bin])
-                )
+                binned_med[i-1] = np.median(ent[this_bin])
+
 
         my_profiles[sub_id]['average'] = binned_ent
-        my_profiles[sub_id]['std_dev'] = binned_std
+        my_profiles[sub_id]['median'] = binned_med
 
     else: # no gas
         my_profiles[sub_id]['average'] = np.nan
-        my_profiles[sub_id]['std_dev'] = np.nan
+        my_profiles[sub_id]['median'] = np.nan
 
 profile_list = comm.gather(my_profiles, root=0)
 
@@ -168,14 +165,14 @@ if rank==0:
             all_profiles[i,0] = k
             all_profiles[i,1] = v['dm_mass'].value
             all_profiles[i,2::2] = v['average']
-            all_profiles[i,3::2] = v['std_dev']
+            all_profiles[i,3::2] = v['median']
             i+=1
 
     sort = np.argsort(all_profiles[:,0])
 
     header = "SubID   DMmass"
     for r in binned_r:
-        header += "   {:.4f} avg stddev".format(r)
+        header += "   {:.4f} avg med".format(r)
 
     np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
                delimiter=',', header=header)
