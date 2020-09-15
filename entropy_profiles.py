@@ -73,7 +73,7 @@ for sub_id in my_subs[good_ids]:
                 dens = f['PartType0']['Density'][:]
                 mass = f['PartType0']['Masses'][:]
                 inte = f['PartType0']['InternalEnergy'][:]
-                elec = f['PartType0']['ElectronAbundance'][:]
+                elec = f['PartType0']['ElectronAbundance'][:] #x_e = n_e/n_H
 
         except KeyError:
             gas = False
@@ -116,9 +116,11 @@ for sub_id in my_subs[good_ids]:
         temp = ( (gamma-1) * inte/k_B * mu * 1e10*u.erg/u.g ).to('K')
 
         dens = dens * 1e10*u.Msun/littleh * (u.kpc*a0/littleh)**-3
-        ne = elec * X_H*dens/m_p
+        ne = elec * X_H*dens/m_p # elec frac defined as n_e/n_H
         ent = k_B * temp/ne**(gamma-1)
         ent = ent.to('eV cm^2', equivalencies=u.temperature_energy())
+
+        pres = dens/m_p * k_B * temp
 
         x = coords[:,0]
         y = coords[:,1]
@@ -136,44 +138,66 @@ for sub_id in my_subs[good_ids]:
 
         r_scale = (r/r200).value
         rbinner = np.digitize(r_scale, r_edges)
-        binned_ent = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
-        binned_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+
+        binned_ent_avg = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+        binned_ent_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+
+        binned_pres_avg = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
+        binned_pres_med = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
 
         for i in range(1, r_edges.size):
             this_bin = rbinner==i
             if np.sum(mass[this_bin]) != 0: # are there particles in this bin
-                binned_ent[i-1] = np.average(ent[this_bin],
+
+                binned_ent_avg[i-1] = np.average(ent[this_bin],
                                              weights = mass[this_bin])
-                binned_med[i-1] = np.median(ent[this_bin])
+                binned_ent_med[i-1] = np.median(ent[this_bin])
 
+                binned_pres_avg[i-1] = np.average(pres[this_bin],
+                                             weights = mass[this_bin])
+                binned_pres_med[i-1] = np.median(pres[this_bin])
 
-        my_profiles[sub_id]['average'] = binned_ent
-        my_profiles[sub_id]['median'] = binned_med
+        my_profiles[sub_id]['ent_avg'] = binned_ent_avg
+        my_profiles[sub_id]['ent_med'] = binned_ent_med
+        my_profiles[sub_id]['pres_avg'] = binned_pres_avg
+        my_profiles[sub_id]['pres_med'] = binned_pres_med
 
     else: # no gas
-        my_profiles[sub_id]['average'] = np.nan
-        my_profiles[sub_id]['median'] = np.nan
+        my_profiles[sub_id]['ent_avg'] = np.nan
+        my_profiles[sub_id]['ent_med'] = np.nan
+        my_profiles[sub_id]['pres_avg'] = np.nan
+        my_profiles[sub_id]['pres_med'] = np.nan
 
 profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_profiles = np.zeros( (len(sub_list), 2*nbins+2) )
+    all_entprof = np.zeros( (len(sub_list), 2*nbins+2) )
+    all_presprof = np.zeros( (len(sub_list), 2*nbins+2) )
+
     i=0
     for dic in profile_list:
         for k,v in dic.items():
-            all_profiles[i,0] = k
-            all_profiles[i,1] = v['dm_mass'].value
-            all_profiles[i,2::2] = v['average']
-            all_profiles[i,3::2] = v['median']
+            all_entprof[i,0] = k
+            all_entprof[i,1] = v['dm_mass'].value
+            all_entprof[i,2::2] = v['ent_avg']
+            all_entprof[i,3::2] = v['ent_med']
+            
+            all_presprof[i,0] = k
+            all_presprof[i,1] = v['dm_mass'].value
+            all_presprof[i,2::2] = v['pres_avg']
+            all_presprof[i,3::2] = v['pres_med']
+            
             i+=1
 
-    sort = np.argsort(all_profiles[:,0])
+    ent_sort = np.argsort(all_entprof[:,0])
+    pres_sort = np.argsort(all_presprof[:,0])
 
     header = "SubID   DMmass"
     for r in binned_r:
         header += "   {:.4f} avg med".format(r)
 
-    np.savetxt(folder+'entropy_profiles.csv', all_profiles[sort], 
+    np.savetxt(folder+'entropy_profiles.csv', all_entprof[ent_sort], 
                delimiter=',', header=header)
-
+    np.savetxt(folder+'pressure_profiles.csv', all_presprof[pres_sort],
+               delimiter=',', header=header)
