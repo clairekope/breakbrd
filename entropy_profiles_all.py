@@ -1,6 +1,8 @@
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
 import sys
+import os
+import gc
 import h5py
 import readsubfHDF5
 import readhaloHDF5
@@ -51,8 +53,9 @@ else:
         sat = None
                                    
 my_subs = scatter_work(sub_ids, rank, size)
-# my_subs = scatter_work(subset, rank, size)
 sub_ids = comm.bcast(sub_ids, root=0)
+if args.local:
+    sat = comm.bcast(sat, root=0)
 
 boxsize = get(url_dset)['boxsize']
 z = args.z
@@ -73,7 +76,9 @@ for sub_id in my_subs[good_ids]:
     sfr = sub["sfr"] * u.Msun / u.yr
 
     my_profiles[sub_id]['dm_mass'] = dm_halo
+    my_profiles[sub_id]['star_mass'] = star_mass
     my_profiles[sub_id]['ssfr'] = star_mass / sfr
+    my_profiles[sub_id]['sat'] = sat[sub_id]
 
     gas = True
     if not args.local:
@@ -187,34 +192,42 @@ profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_entprof = np.zeros( (len(sub_ids), 2*nbins+3) )
-    all_presprof = np.zeros( (len(sub_ids), 2*nbins+3) )
+    all_galprop = np.zeros( (len(sub_ids), 5) )
+    all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
+    all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
 
     i=0
     for dic in profile_list:
         for k,v in dic.items():
+            all_galprop[i,0] = k
+            all_galprop[i,1] = v['dm_mass'].value
+            all_galprops[i,2] = v['star_mass'].value
+            all_galprop[i,3] = v['ssfr'].value
+            all_galprop[i,4] = v['sat']
+
             all_entprof[i,0] = k
-            all_entprof[i,1] = v['dm_mass'].value
-            all_entprof[i,2] = v['ssfr'].value
-            all_entprof[i,3::2] = v['ent_avg']
-            all_entprof[i,4::2] = v['ent_med']
+            all_entprof[i,1::2] = v['ent_avg']
+            all_entprof[i,2::2] = v['ent_med']
             
             all_presprof[i,0] = k
-            all_presprof[i,1] = v['dm_mass'].value
-            all_presprof[i,2] = v['ssfr'].value
-            all_presprof[i,3::2] = v['pres_avg']
-            all_presprof[i,4::2] = v['pres_med']
+            all_presprof[i,1::2] = v['pres_avg']
+            all_presprof[i,2::2] = v['pres_med']
             
             i+=1
 
+    prop_sort = np.argsort(all_galprop[:,0])
     ent_sort = np.argsort(all_entprof[:,0])
     pres_sort = np.argsort(all_presprof[:,0])
 
-    header = "SubID   DMmass   sSFR"
+    prop_header = "SubID,DarkMass,StarMass,sSFR,Sat"
+
+    header = "SubID"
     for r in binned_r:
         header += "   {:.4f} avg med".format(r)
 
-    np.savetxt(folder+'entropy_profiles.csv', all_entprof[ent_sort], 
+    np.savetxt(folder+'halo_properties_extended.csv', all_galprop[prop_sort],
+               delimiter=',', header=prop_header)
+    np.savetxt(folder+'entropy_profiles_extended.csv', all_entprof[ent_sort], 
                delimiter=',', header=header)
-    np.savetxt(folder+'pressure_profiles.csv', all_presprof[pres_sort],
+    np.savetxt(folder+'pressure_profiles_extended.csv', all_presprof[pres_sort],
                delimiter=',', header=header)
