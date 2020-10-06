@@ -77,7 +77,7 @@ for sub_id in my_subs[good_ids]:
 
     my_profiles[sub_id]['dm_mass'] = dm_halo
     my_profiles[sub_id]['star_mass'] = star_mass
-    my_profiles[sub_id]['ssfr'] = star_mass / sfr
+    my_profiles[sub_id]['ssfr'] = sfr/star_mass
     my_profiles[sub_id]['sat'] = sat[sub_id]
 
     gas = True
@@ -201,7 +201,7 @@ if rank==0:
         for k,v in dic.items():
             all_galprop[i,0] = k
             all_galprop[i,1] = v['dm_mass'].value
-            all_galprops[i,2] = v['star_mass'].value
+            all_galprop[i,2] = v['star_mass'].value
             all_galprop[i,3] = v['ssfr'].value
             all_galprop[i,4] = v['sat']
 
