@@ -125,6 +125,11 @@ for sub_id in my_subs[good_ids]:
                                   "GAGE", 4, -1, sub_id, long_ids=True,
                                   double_output=False).astype("float32")
 
+        # filter out wind particles
+        stars = a > 0
+        scoords = scoords[stars]
+        smass = smass[stars]
+        
     my_particle_data[sub_id] = {}
 
     if gas:
