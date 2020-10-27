@@ -70,70 +70,155 @@ for sub_id in my_subs[good_ids]:
 
     my_profiles[sub_id] = {}
 
+    #
+    # Pull API quantities
+    #
+    
     sub = get(url_sbhalos + str(sub_id))
     dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
     star_mass = sub["mass_stars"] * 1e10 / littleh * u.Msun
     sfr = sub["sfr"] * u.Msun / u.yr
-
+    rhalf = sub["halfmassrad_stars"] * u.kpc * a0/littleh
+    x0 = sub["pos_x"]
+    y0 = sub["pos_y"]
+    z0 = sub["pos_z"]
+    
     my_profiles[sub_id]['dm_mass'] = dm_halo
     my_profiles[sub_id]['star_mass'] = star_mass
     my_profiles[sub_id]['ssfr'] = sfr/star_mass
     my_profiles[sub_id]['sat'] = sat[sub_id]
 
+    #
+    # Load particle data
+    #
+    
     gas = True
-    if not args.local:
-        # Read particle data
-        # gas_file = folder+"gas_cutouts/cutout_{}.hdf5".format(sub_id)
-        gas_file = "/home/claire/cutout_{}.hdf5".format(sub_id)
-        
-        # Gas
-        try:
-            with h5py.File(gas_file) as f:
-                coords = f['PartType0']['Coordinates'][:,:]
-                dens = f['PartType0']['Density'][:]
-                mass = f['PartType0']['Masses'][:]
-                inte = f['PartType0']['InternalEnergy'][:]
-                elec = f['PartType0']['ElectronAbundance'][:] #x_e = n_e/n_H
-
-        except KeyError:
-            gas = False
-
-    else:
+    stars = True
+    if args.local:
+        raise NotImplementedError("Cutouts not updated to include required info")
+    
+    else: # use local dataset instead of api-downloaded cutouts
         readhaloHDF5.reset()
 
+        # dm_coords = readhaloHDF5.readhalo(args.local, "snap", snapnum,
+        #                                   "POS ", 1, -1, sub_id, long_ids=True,
+        #                                   double_output=False).astype("float32")
+        # dm_mass = readhaloHDF5.readhalo(args.local, "snap", snapnum,
+        #                                 "MASS", 1, -1, sub_id, long_ids=True,
+        #                                 double_output=False).astype("float32")
+        
         try:
             # Gas
             coords = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                            "POS ", 0, -1, sub_id, long_ids=True,
                                            double_output=False).astype("float32")
+            
+            vel = readhaloHDF5.readhalo(args.local, "snap", snapnum,
+                                        "VEL ", 0, -1, sub_id, long_ids=True,
+                                        double_output=False).astype("float32")
+            
             dens = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                          "RHO ", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
+            
             mass = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                          "MASS", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
+            
             inte = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
                                          "U   ", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
+            
             elec = readhaloHDF5.readhalo(args.local, "snap", snapnum,
                                          "NE  ", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
 
+            cool_rate = readhaloHDF5.readhalo(args.local, "snap", snapnum,
+                                              "GCOL", 0, -1, sub_id, long_ids=True,
+                                              double_output=False).astype("float32")
+            
         except AttributeError:
             gas = False
 
 
+        # Stars
+        try:
+            scoords = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+                                            "POS ", 4, -1, sub_id, long_ids=True,
+                                            double_output=False).astype("float32")
+            
+            svel = readhaloHDF5.readhalo(args.local, "snap", snapnum,
+                                         "VEL ", 4, -1, sub_id, long_ids=True,
+                                         double_output=False).astype("float32")
+            
+            smass = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+                                          "MASS", 4, -1, sub_id, long_ids=True,
+                                          double_output=False).astype("float32")
+            
+            a_form = readhaloHDF5.readhalo(args.local, "snap", snapnum, 
+                                           "GAGE", 4, -1, sub_id, long_ids=True,
+                                           double_output=False).astype("float32")
+
+            # filter out wind particles
+            stars = a_form > 0
+            scoords = scoords[stars]
+            svel = svel[stars]
+            smass = smass[stars]
+            
+        except AttributeError:
+            stars = False
+
+    #
+    # Calculate r200 and other virial quantities
+    #
+
+    r200 = (G*dm_halo/(100*H0**2))**(1/3)
+    r200 = r200.to('kpc')
+
+    # QUESTION: DM mass or total (DM+star+gas) mass?
+    var_200 = G*dm_halo/(2*r200)
+    disp_200 = np.sqrt(disp_200).to('km/s')
+        
+    T200 = dm_halo*var_200/(2*kboltz)
+    T200 = T200.to('K')
+
+    # save virial quantities
+    my_profiles[sub_id]['disp_200'] = disp_200
+    my_profiles[sub_id]['T_200'] = T200
+  
+    #
+    # Calculate gas information
+    #
+    
     if gas:
+        
+        x = coords[:,0]
+        y = coords[:,1]
+        z = coords[:,2]
+        x_rel = periodic_centering(x, x0, boxsize) * u.kpc * a0/littleh
+        y_rel = periodic_centering(y, y0, boxsize) * u.kpc * a0/littleh
+        z_rel = periodic_centering(z, z0, boxsize) * u.kpc * a0/littleh
+        r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
+
+        mass = mass * 1e10 / littleh * u.Msun
+        vel *= np.sqrt(a0) * u.km/u.s
+
+        # subtracting off bulk velocity
+        vel[:,0] -= sub['vel_x'] * u.km/u.s
+        vel[:,1] -= sub['vel_y'] * u.km/u.s
+        vel[:,2] -= sub['vel_z'] * u.km/u.s
+
         #
         # Calculate Entropy
         #
 
         # For conversion of internal energy to temperature, see
         # https://www.tng-project.org/data/docs/faq/#gen4
+        inte *= u.erg/u.g
         X_H = 0.76
         gamma = 5./3.
         mu = 4/(1 + 3*X_H + 4*X_H*elec) * m_p
-        temp = ( (gamma-1) * inte/k_B * mu * 1e10*u.erg/u.g ).to('K')
+        temp = ( (gamma-1) * inte/k_B * mu * 1e10 ).to('K')
 
         dens = dens * 1e10*u.Msun/littleh * (u.kpc*a0/littleh)**-3
         ne = elec * X_H*dens/m_p # elec frac defined as n_e/n_H
@@ -142,20 +227,30 @@ for sub_id in my_subs[good_ids]:
 
         pres = dens/m_p * k_B * temp
 
-        x = coords[:,0]
-        y = coords[:,1]
-        z = coords[:,2]
-        x_rel = periodic_centering(x, sub['pos_x'], boxsize) * u.kpc * a0/littleh
-        y_rel = periodic_centering(y, sub['pos_y'], boxsize) * u.kpc * a0/littleh
-        z_rel = periodic_centering(z, sub['pos_z'], boxsize) * u.kpc * a0/littleh
-        r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
+        cool_rate *= u.erg * u.cm**3 / u.s
+        tcool = inte*(mu*m_p)**2 / (dens*cool_rate)
+        assert tcool.unit == u.s
 
-        mass = mass * 1e10 / littleh * u.Msun
+        #
+        # Calculate some misc gas properties
+        #
 
-        # TODO calculate r200 and bin K in scaled radial bins
-        r200 = (G*dm_halo/(100*H0**2))**(1/3)
-        r200 = r200.to('kpc')
+        T_hot_avg = np.average(temp[temp > 1e5], weights = mass[temp > 1e5])
 
+        # vel subtracts mass-weighted pec vel; same as COM vel?
+        j_gas = np.cross(mass*r, vel)
+        r_CGM = 2*r_half # DeFelippis+20
+        M_gas_CGM = np.sum(mass[r > r_CGM])
+        j_gas_CGM = np.sum(j_gas[r > r_CGM])/M_gas_CGM
+        
+        my_profiles[sub_id]['T_hot_avg'] = T_hot_avg
+        my_profiles[sub_id]['j_gas_CGM'] = j_gas_CGM
+        
+        #
+        # Calculate & store radial profiles
+        #
+        
+        # bin K in scaled radial bins
         r_scale = (r/r200).value
         rbinner = np.digitize(r_scale, r_edges)
 
@@ -165,28 +260,75 @@ for sub_id in my_subs[good_ids]:
         binned_pres_avg = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
         binned_pres_med = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
 
+        binned_tcool_avg = np.ones_like(binned_r)*np.nan * u.s
+        binned_tcool_med = np.ones_like(binned_r)*np.nan * u.s
+
+        # find central tendency for each radial bin
         for i in range(1, r_edges.size):
             this_bin = rbinner==i
             if np.sum(mass[this_bin]) != 0: # are there particles in this bin
 
                 binned_ent_avg[i-1] = np.average(ent[this_bin],
-                                             weights = mass[this_bin])
+                                                 weights = mass[this_bin])
                 binned_ent_med[i-1] = np.median(ent[this_bin])
 
                 binned_pres_avg[i-1] = np.average(pres[this_bin],
-                                             weights = mass[this_bin])
+                                                  weights = mass[this_bin])
                 binned_pres_med[i-1] = np.median(pres[this_bin])
 
+                binned_tcool_avg[i-1] = np.average(tcool[this_bin],
+                                                   weights = mass[this_bin])
+                binned_tcool_med[i-1] = np.median(tcool[this_bin])
+                
         my_profiles[sub_id]['ent_avg'] = binned_ent_avg
         my_profiles[sub_id]['ent_med'] = binned_ent_med
         my_profiles[sub_id]['pres_avg'] = binned_pres_avg
         my_profiles[sub_id]['pres_med'] = binned_pres_med
+        my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
+        my_profiles[sub_id]['tcool_med'] = binned_tcool_med
 
     else: # no gas
+        my_profiles[sub_id]['T_hot_avg'] = np.nan
+        my_profiles[sub_id]['j_gas_CGM'] = np.nan
+        
         my_profiles[sub_id]['ent_avg'] = np.nan
         my_profiles[sub_id]['ent_med'] = np.nan
         my_profiles[sub_id]['pres_avg'] = np.nan
         my_profiles[sub_id]['pres_med'] = np.nan
+        my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
+        my_profiles[sub_id]['tcool_med'] = binned_tcool_med
+        
+    #
+    # Calculate stellar information
+    #
+    
+    if stars:
+
+        sx = scoords[:,0]
+        sy = scoords[:,1]
+        sz = scoords[:,2]
+        sx_rel = periodic_centering(sx, x0, boxsize) * u.kpc * a0/littleh
+        sy_rel = periodic_centering(sy, y0, boxsize) * u.kpc * a0/littleh
+        sz_rel = periodic_centering(sz, z0, boxsize) * u.kpc * a0/littleh
+        sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
+
+        smass = smass * 1e10 / littleh * u.Msun
+        svel *= np.sqrt(a0) * u.km/u.s
+
+        # subtracting off bulk velocity
+        svel[:,0] -= sub['vel_x'] * u.km/u.s
+        svel[:,1] -= sub['vel_y'] * u.km/u.s
+        svel[:,2] -= sub['vel_z'] * u.km/u.s
+
+        disp_star = np.sqrt(np.sum(np.var(svel[sr < rhalf], axis=0)))
+
+        my_profiles[sub_id]['disp_star'] = disp_star
+        
+    else: # no stars
+        my_profiles[sub_id]['disp_star'] = np.nan
+#
+# Collect data from MPI ranks & write to files
+#
 
 profile_list = comm.gather(my_profiles, root=0)
 
@@ -195,7 +337,8 @@ if rank==0:
     all_galprop = np.zeros( (len(sub_ids), 5) )
     all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
-
+    all_tcoolprof = np.zeros( (len(sub_ids), 2*nbins+1) )
+    
     i=0
     for dic in profile_list:
         for k,v in dic.items():
@@ -212,12 +355,18 @@ if rank==0:
             all_presprof[i,0] = k
             all_presprof[i,1::2] = v['pres_avg']
             all_presprof[i,2::2] = v['pres_med']
+
+            all_tcoolprof[i,0] = k
+            all_tcoolprof[i,1::2] = v['tcool_avg']
+            all_tcoolprof[i,2::2] = v['tcool_med']
             
             i+=1
 
+    # these are probably all the same but I'm playing it safe
     prop_sort = np.argsort(all_galprop[:,0])
     ent_sort = np.argsort(all_entprof[:,0])
     pres_sort = np.argsort(all_presprof[:,0])
+    tcool_sort = np.argsort(all_tcoolprof[:,0])
 
     prop_header = "SubID,DarkMass,StarMass,sSFR,Sat"
 
@@ -230,4 +379,6 @@ if rank==0:
     np.savetxt(folder+'entropy_profiles_extended.csv', all_entprof[ent_sort], 
                delimiter=',', header=header)
     np.savetxt(folder+'pressure_profiles_extended.csv', all_presprof[pres_sort],
+               delimiter=',', header=header)
+    np.savetxt(folder+'tcool_profiles_extended.csv', all_tcoolprof[tcool_sort],
                delimiter=',', header=header)
