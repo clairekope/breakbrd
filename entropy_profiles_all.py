@@ -254,11 +254,11 @@ for sub_id in my_subs[good_ids]:
         r_scale = (r/r200).value
         rbinner = np.digitize(r_scale, r_edges)
 
-        binned_ent_avg = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
-        binned_ent_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+        # binned_ent_avg = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
+        # binned_ent_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
 
-        binned_pres_avg = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
-        binned_pres_med = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
+        # binned_pres_avg = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
+        # binned_pres_med = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
 
         binned_tcool_avg = np.ones_like(binned_r)*np.nan * u.s
         binned_tcool_med = np.ones_like(binned_r)*np.nan * u.s
@@ -268,22 +268,22 @@ for sub_id in my_subs[good_ids]:
             this_bin = rbinner==i
             if np.sum(mass[this_bin]) != 0: # are there particles in this bin
 
-                binned_ent_avg[i-1] = np.average(ent[this_bin],
-                                                 weights = mass[this_bin])
-                binned_ent_med[i-1] = np.median(ent[this_bin])
+                # binned_ent_avg[i-1] = np.average(ent[this_bin],
+                #                                  weights = mass[this_bin])
+                # binned_ent_med[i-1] = np.median(ent[this_bin])
 
-                binned_pres_avg[i-1] = np.average(pres[this_bin],
-                                                  weights = mass[this_bin])
-                binned_pres_med[i-1] = np.median(pres[this_bin])
+                # binned_pres_avg[i-1] = np.average(pres[this_bin],
+                #                                   weights = mass[this_bin])
+                # binned_pres_med[i-1] = np.median(pres[this_bin])
 
                 binned_tcool_avg[i-1] = np.average(tcool[this_bin],
                                                    weights = mass[this_bin])
                 binned_tcool_med[i-1] = np.median(tcool[this_bin])
                 
-        my_profiles[sub_id]['ent_avg'] = binned_ent_avg
-        my_profiles[sub_id]['ent_med'] = binned_ent_med
-        my_profiles[sub_id]['pres_avg'] = binned_pres_avg
-        my_profiles[sub_id]['pres_med'] = binned_pres_med
+        # my_profiles[sub_id]['ent_avg'] = binned_ent_avg
+        # my_profiles[sub_id]['ent_med'] = binned_ent_med
+        # my_profiles[sub_id]['pres_avg'] = binned_pres_avg
+        # my_profiles[sub_id]['pres_med'] = binned_pres_med
         my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
         my_profiles[sub_id]['tcool_med'] = binned_tcool_med
 
@@ -291,10 +291,10 @@ for sub_id in my_subs[good_ids]:
         my_profiles[sub_id]['T_hot_avg'] = np.nan
         my_profiles[sub_id]['j_gas_CGM'] = np.nan
         
-        my_profiles[sub_id]['ent_avg'] = np.nan
-        my_profiles[sub_id]['ent_med'] = np.nan
-        my_profiles[sub_id]['pres_avg'] = np.nan
-        my_profiles[sub_id]['pres_med'] = np.nan
+        # my_profiles[sub_id]['ent_avg'] = np.nan
+        # my_profiles[sub_id]['ent_med'] = np.nan
+        # my_profiles[sub_id]['pres_avg'] = np.nan
+        # my_profiles[sub_id]['pres_med'] = np.nan
         my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
         my_profiles[sub_id]['tcool_med'] = binned_tcool_med
         
@@ -335,8 +335,8 @@ profile_list = comm.gather(my_profiles, root=0)
 if rank==0:
 
     all_galprop = np.zeros( (len(sub_ids), 5) )
-    all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
-    all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
+    # all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
+    # all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     all_tcoolprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     
     i=0
@@ -347,14 +347,19 @@ if rank==0:
             all_galprop[i,2] = v['star_mass'].value
             all_galprop[i,3] = v['ssfr'].value
             all_galprop[i,4] = v['sat']
+            all_galprop[i,5] = v['j_gas_CGM'].value
+            all_galprop[i,6] = v['T_200'].value
+            all_galprop[i,7] = v['T_hot_avg'].value
+            all_galprop[i,8] = v['disp_200'].value
+            all_galprop[i,9] = v['disp_star'].value
 
-            all_entprof[i,0] = k
-            all_entprof[i,1::2] = v['ent_avg']
-            all_entprof[i,2::2] = v['ent_med']
+            # all_entprof[i,0] = k
+            # all_entprof[i,1::2] = v['ent_avg']
+            # all_entprof[i,2::2] = v['ent_med']
             
-            all_presprof[i,0] = k
-            all_presprof[i,1::2] = v['pres_avg']
-            all_presprof[i,2::2] = v['pres_med']
+            # all_presprof[i,0] = k
+            # all_presprof[i,1::2] = v['pres_avg']
+            # all_presprof[i,2::2] = v['pres_med']
 
             all_tcoolprof[i,0] = k
             all_tcoolprof[i,1::2] = v['tcool_avg']
@@ -364,11 +369,11 @@ if rank==0:
 
     # these are probably all the same but I'm playing it safe
     prop_sort = np.argsort(all_galprop[:,0])
-    ent_sort = np.argsort(all_entprof[:,0])
-    pres_sort = np.argsort(all_presprof[:,0])
+    # ent_sort = np.argsort(all_entprof[:,0])
+    # pres_sort = np.argsort(all_presprof[:,0])
     tcool_sort = np.argsort(all_tcoolprof[:,0])
 
-    prop_header = "SubID,DarkMass,StarMass,sSFR,Sat"
+    prop_header = "SubID,DarkMass,StarMass,sSFR,Sat,jGas,T200,THot,Disp200,DispStar"
 
     header = "SubID"
     for r in binned_r:
@@ -376,9 +381,9 @@ if rank==0:
 
     np.savetxt(folder+'halo_properties_extended.csv', all_galprop[prop_sort],
                delimiter=',', header=prop_header)
-    np.savetxt(folder+'entropy_profiles_extended.csv', all_entprof[ent_sort], 
-               delimiter=',', header=header)
-    np.savetxt(folder+'pressure_profiles_extended.csv', all_presprof[pres_sort],
-               delimiter=',', header=header)
+    # np.savetxt(folder+'entropy_profiles_extended.csv', all_entprof[ent_sort], 
+    #            delimiter=',', header=header)
+    # np.savetxt(folder+'pressure_profiles_extended.csv', all_presprof[pres_sort],
+    #            delimiter=',', header=header)
     np.savetxt(folder+'tcool_profiles_extended.csv', all_tcoolprof[tcool_sort],
                delimiter=',', header=header)
