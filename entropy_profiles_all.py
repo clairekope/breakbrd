@@ -179,7 +179,7 @@ for sub_id in my_subs[good_ids]:
     disp_200 = G*dm_halo/(2*r200)
     disp_200 = np.sqrt(disp_200).to('km/s')
         
-    T200 = dm_halo*disp_200**2/(2*k_B)
+    T200 = 0.6*m_p/(2*k_B) * disp_200**2
     T200 = T200.to('K')
 
     # save virial quantities
