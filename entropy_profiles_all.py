@@ -78,7 +78,7 @@ for sub_id in my_subs[good_ids]:
     dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
     star_mass = sub["mass_stars"] * 1e10 / littleh * u.Msun
     sfr = sub["sfr"] * u.Msun / u.yr
-    rhalf = sub["halfmassrad_stars"] * u.kpc * a0/littleh
+    r_half = sub["halfmassrad_stars"] * u.kpc * a0/littleh
     x0 = sub["pos_x"]
     y0 = sub["pos_y"]
     z0 = sub["pos_z"]
@@ -94,7 +94,7 @@ for sub_id in my_subs[good_ids]:
     
     gas = True
     stars = True
-    if args.local:
+    if not args.local:
         raise NotImplementedError("Cutouts not updated to include required info")
     
     else: # use local dataset instead of api-downloaded cutouts
@@ -160,10 +160,10 @@ for sub_id in my_subs[good_ids]:
                                            double_output=False).astype("float32")
 
             # filter out wind particles
-            stars = a_form > 0
-            scoords = scoords[stars]
-            svel = svel[stars]
-            smass = smass[stars]
+            star_filter = a_form > 0
+            scoords = scoords[star_filter]
+            svel = svel[star_filter]
+            smass = smass[star_filter]
             
         except AttributeError:
             stars = False
@@ -176,10 +176,10 @@ for sub_id in my_subs[good_ids]:
     r200 = r200.to('kpc')
 
     # QUESTION: DM mass or total (DM+star+gas) mass?
-    var_200 = G*dm_halo/(2*r200)
+    disp_200 = G*dm_halo/(2*r200)
     disp_200 = np.sqrt(disp_200).to('km/s')
         
-    T200 = dm_halo*var_200/(2*kboltz)
+    T200 = dm_halo*disp_200**2/(2*k_B)
     T200 = T200.to('K')
 
     # save virial quantities
@@ -199,9 +199,10 @@ for sub_id in my_subs[good_ids]:
         y_rel = periodic_centering(y, y0, boxsize) * u.kpc * a0/littleh
         z_rel = periodic_centering(z, z0, boxsize) * u.kpc * a0/littleh
         r = np.sqrt(x_rel**2 + y_rel**2 + z_rel**2)
-
+        r_vec = np.column_stack([x_rel,y_rel,z_rel])
+        
         mass = mass * 1e10 / littleh * u.Msun
-        vel *= np.sqrt(a0) * u.km/u.s
+        vel = vel * np.sqrt(a0) * u.km/u.s
 
         # subtracting off bulk velocity
         vel[:,0] -= sub['vel_x'] * u.km/u.s
@@ -217,8 +218,8 @@ for sub_id in my_subs[good_ids]:
         inte *= u.erg/u.g
         X_H = 0.76
         gamma = 5./3.
-        mu = 4/(1 + 3*X_H + 4*X_H*elec) * m_p
-        temp = ( (gamma-1) * inte/k_B * mu * 1e10 ).to('K')
+        mu = 4/(1 + 3*X_H + 4*X_H*elec)
+        temp = ( (gamma-1) * inte/k_B * mu*m_p * 1e10 ).to('K')
 
         dens = dens * 1e10*u.Msun/littleh * (u.kpc*a0/littleh)**-3
         ne = elec * X_H*dens/m_p # elec frac defined as n_e/n_H
@@ -228,24 +229,30 @@ for sub_id in my_subs[good_ids]:
         pres = dens/m_p * k_B * temp
 
         cool_rate *= u.erg * u.cm**3 / u.s
-        tcool = inte*(mu*m_p)**2 / (dens*cool_rate)
+        intE = (inte*mu*m_p).to('erg')
+        n = (dens/(mu*m_p)).to('cm**-3')
+        tcool = intE/(cool_rate*n)
         assert tcool.unit == u.s
 
         #
         # Calculate some misc gas properties
         #
 
-        T_hot_avg = np.average(temp[temp > 1e5], weights = mass[temp > 1e5])
+        if ( temp>1e5*u.K ).any():
+            T_hot_avg = np.average(temp[temp > 1e5*u.K], weights = mass[temp > 1e5*u.K])
+        else:
+            T_hot_avg = np.nan * u.K
 
         # vel subtracts mass-weighted pec vel; same as COM vel?
-        j_gas = np.cross(mass*r, vel)
+        j_vec_gas = mass[:,np.newaxis]*np.cross(r_vec,vel)
         r_CGM = 2*r_half # DeFelippis+20
         M_gas_CGM = np.sum(mass[r > r_CGM])
-        j_gas_CGM = np.sum(j_gas[r > r_CGM])/M_gas_CGM
+        j_vec_gas_CGM = np.sum(j_vec_gas[r > r_CGM], axis=0)/M_gas_CGM
+        j_gas_CGM = np.sqrt(np.sum(j_vec_gas_CGM**2)).to('kpc*km/s')
         
         my_profiles[sub_id]['T_hot_avg'] = T_hot_avg
         my_profiles[sub_id]['j_gas_CGM'] = j_gas_CGM
-        
+
         #
         # Calculate & store radial profiles
         #
@@ -288,15 +295,15 @@ for sub_id in my_subs[good_ids]:
         my_profiles[sub_id]['tcool_med'] = binned_tcool_med
 
     else: # no gas
-        my_profiles[sub_id]['T_hot_avg'] = np.nan
-        my_profiles[sub_id]['j_gas_CGM'] = np.nan
+        my_profiles[sub_id]['T_hot_avg'] = np.nan * u.K
+        my_profiles[sub_id]['j_gas_CGM'] = np.nan * u.km/u.s * u.kpc
         
         # my_profiles[sub_id]['ent_avg'] = np.nan
         # my_profiles[sub_id]['ent_med'] = np.nan
         # my_profiles[sub_id]['pres_avg'] = np.nan
         # my_profiles[sub_id]['pres_med'] = np.nan
-        my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
-        my_profiles[sub_id]['tcool_med'] = binned_tcool_med
+        my_profiles[sub_id]['tcool_avg'] = np.nan
+        my_profiles[sub_id]['tcool_med'] = np.nan
         
     #
     # Calculate stellar information
@@ -313,19 +320,19 @@ for sub_id in my_subs[good_ids]:
         sr = np.sqrt(sx_rel**2 + sy_rel**2 + sz_rel**2)    
 
         smass = smass * 1e10 / littleh * u.Msun
-        svel *= np.sqrt(a0) * u.km/u.s
+        svel = svel * np.sqrt(a0) * u.km/u.s
 
         # subtracting off bulk velocity
         svel[:,0] -= sub['vel_x'] * u.km/u.s
         svel[:,1] -= sub['vel_y'] * u.km/u.s
         svel[:,2] -= sub['vel_z'] * u.km/u.s
 
-        disp_star = np.sqrt(np.sum(np.var(svel[sr < rhalf], axis=0)))
+        disp_star = np.sqrt(np.sum(np.var(svel[sr < r_half], axis=0)))
 
         my_profiles[sub_id]['disp_star'] = disp_star
         
     else: # no stars
-        my_profiles[sub_id]['disp_star'] = np.nan
+        my_profiles[sub_id]['disp_star'] = np.nan * u.km/u.s
 #
 # Collect data from MPI ranks & write to files
 #
@@ -334,7 +341,7 @@ profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_galprop = np.zeros( (len(sub_ids), 5) )
+    all_galprop = np.zeros( (len(sub_ids), 10) )
     # all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     # all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     all_tcoolprof = np.zeros( (len(sub_ids), 2*nbins+1) )
