@@ -267,9 +267,15 @@ for sub_id in my_subs[good_ids]:
         # binned_pres_avg = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
         # binned_pres_med = np.ones_like(binned_r)*np.nan * u.dyn/u.cm**2
 
-        binned_tcool_avg = np.ones_like(binned_r)*np.nan * u.s
-        binned_tcool_med = np.ones_like(binned_r)*np.nan * u.s
+        # binned_tcool_avg = np.ones_like(binned_r)*np.nan * u.s
+        # binned_tcool_med = np.ones_like(binned_r)*np.nan * u.s
 
+        binned_mass_cool = np.ones_like(binned_r)*np.nan * u.Msun
+        binned_mass_hot  = np.ones_like(binned_r)*np.nan * u.Msun
+
+        binned_mass_loK = np.zeros_like(binned_r) * u.Msun
+        binned_mass_hiK = np.zeros_like(binned_r) * u.Msun
+        
         # find central tendency for each radial bin
         for i in range(1, r_edges.size):
             this_bin = rbinner==i
@@ -283,16 +289,28 @@ for sub_id in my_subs[good_ids]:
                 #                                   weights = mass[this_bin])
                 # binned_pres_med[i-1] = np.median(pres[this_bin])
 
-                binned_tcool_avg[i-1] = np.average(tcool[this_bin],
-                                                   weights = mass[this_bin])
-                binned_tcool_med[i-1] = np.median(tcool[this_bin])
+                # binned_tcool_avg[i-1] = np.average(tcool[this_bin],
+                #                                    weights = mass[this_bin])
+                # binned_tcool_med[i-1] = np.median(tcool[this_bin])
+
+                this_temp = temp[this_bin]
+                binned_mass_cool[i-1] = np.sum(mass[this_bin][this_temp < 1e5*u.K])
+                binned_mass_hot[i-1]  = np.sum(mass[this_bin][this_temp > 1e5*u.K])
+
+                this_ent = ent[this_bin]
+                binned_mass_loK[i-1] = np.sum(mass[this_bin][this_ent < 1e-1*u.eV*u.cm**2])
+                binned_mass_hiK[i-1] = np.sum(mass[this_bin][this_ent > 1e-1*u.eV*u.cm**2])
                 
         # my_profiles[sub_id]['ent_avg'] = binned_ent_avg
         # my_profiles[sub_id]['ent_med'] = binned_ent_med
         # my_profiles[sub_id]['pres_avg'] = binned_pres_avg
         # my_profiles[sub_id]['pres_med'] = binned_pres_med
-        my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
-        my_profiles[sub_id]['tcool_med'] = binned_tcool_med
+        # my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
+        # my_profiles[sub_id]['tcool_med'] = binned_tcool_med
+        my_profiles[sub_id]['mass_cool'] = binned_mass_cool
+        my_profiles[sub_id]['mass_hot']  = binned_mass_hot
+        my_profiles[sub_id]['mass_loK'] = binned_mass_loK
+        my_profiles[sub_id]['mass_hiK'] = binned_mass_hiK
 
     else: # no gas
         my_profiles[sub_id]['T_hot_avg'] = np.nan * u.K
@@ -302,8 +320,12 @@ for sub_id in my_subs[good_ids]:
         # my_profiles[sub_id]['ent_med'] = np.nan
         # my_profiles[sub_id]['pres_avg'] = np.nan
         # my_profiles[sub_id]['pres_med'] = np.nan
-        my_profiles[sub_id]['tcool_avg'] = np.nan
-        my_profiles[sub_id]['tcool_med'] = np.nan
+        # my_profiles[sub_id]['tcool_avg'] = np.nan
+        # my_profiles[sub_id]['tcool_med'] = np.nan
+        my_profiles[sub_id]['mass_cool'] = 0.0
+        my_profiles[sub_id]['mass_hot']  = 0.0
+        my_profiles[sub_id]['mass_loK'] = 0.0
+        my_profiles[sub_id]['mass_hiK'] = 0.0
         
     #
     # Calculate stellar information
@@ -344,7 +366,8 @@ if rank==0:
     all_galprop = np.zeros( (len(sub_ids), 10) )
     # all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     # all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
-    all_tcoolprof = np.zeros( (len(sub_ids), 2*nbins+1) )
+    # all_tcoolprof = np.zeros( (len(sub_ids), 2*nbins+1) )
+    all_massprof = np.zeros( (len(sub_ids), 4*nbins+1) )
     
     i=0
     for dic in profile_list:
@@ -368,29 +391,37 @@ if rank==0:
             # all_presprof[i,1::2] = v['pres_avg']
             # all_presprof[i,2::2] = v['pres_med']
 
-            all_tcoolprof[i,0] = k
-            all_tcoolprof[i,1::2] = v['tcool_avg']
-            all_tcoolprof[i,2::2] = v['tcool_med']
+            # all_tcoolprof[i,0] = k
+            # all_tcoolprof[i,1::2] = v['tcool_avg']
+            # all_tcoolprof[i,2::2] = v['tcool_med']
+
+            all_massprof[i,0] = k
+            all_massprof[i,1::4] = v['mass_cool']
+            all_massprof[i,2::4] = v['mass_hot']
+            all_massprof[i,3::4] = v['mass_loK']
+            all_massprof[i,4::4] = v['mass_hiK']
             
             i+=1
 
-    # these are probably all the same but I'm playing it safe
-    prop_sort = np.argsort(all_galprop[:,0])
-    # ent_sort = np.argsort(all_entprof[:,0])
-    # pres_sort = np.argsort(all_presprof[:,0])
-    tcool_sort = np.argsort(all_tcoolprof[:,0])
+    sort = np.argsort(all_galprop[:,0])
 
-    prop_header = "SubID,DarkMass,StarMass,sSFR,Sat,jGas,T200,THot,Disp200,DispStar"
+    prop_header = "SubID,Sat,MassDark,MassStar,Disp200,DispStar,sSFR,jGas,T200,THot"
 
     header = "SubID"
     for r in binned_r:
         header += "   {:.4f} avg med".format(r)
 
-    np.savetxt(folder+'halo_properties_extended.csv', all_galprop[prop_sort],
+    mass_header = "SubID"
+    for r in binned_r:
+        header += "   {:.4f} cool hot lowK highK".format(r)
+
+    np.savetxt(folder+'halo_properties_extended.csv', all_galprop[sort],
                delimiter=',', header=prop_header)
-    # np.savetxt(folder+'entropy_profiles_extended.csv', all_entprof[ent_sort], 
+    # np.savetxt(folder+'entropy_profiles_extended.csv', all_entprof[sort], 
     #            delimiter=',', header=header)
-    # np.savetxt(folder+'pressure_profiles_extended.csv', all_presprof[pres_sort],
+    # np.savetxt(folder+'pressure_profiles_extended.csv', all_presprof[sort],
     #            delimiter=',', header=header)
-    np.savetxt(folder+'tcool_profiles_extended.csv', all_tcoolprof[tcool_sort],
-               delimiter=',', header=header)
+    # np.savetxt(folder+'tcool_profiles_extended.csv', all_tcoolprof[sort],
+    #            delimiter=',', header=header)
+    np.savetxt(folder+'mass_profiles_extended.csv', all_massprof[sort],
+               delimiter=',', header=mass_header)
