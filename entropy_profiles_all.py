@@ -299,8 +299,8 @@ for sub_id in my_subs[good_ids]:
                 binned_mass_hot[i-1]  = np.sum(mass[this_bin][this_temp > 1e5*u.K])
 
                 this_ent = ent[this_bin]
-                binned_mass_loK[i-1] = np.sum(mass[this_bin][this_ent < 1e-1*u.eV*u.cm**2])
-                binned_mass_hiK[i-1] = np.sum(mass[this_bin][this_ent > 1e-1*u.eV*u.cm**2])
+                binned_mass_loK[i-1] = np.sum(mass[this_bin][this_ent < 1e3*u.eV*u.cm**2])
+                binned_mass_hiK[i-1] = np.sum(mass[this_bin][this_ent > 1e3*u.eV*u.cm**2])
                 
         # my_profiles[sub_id]['ent_avg'] = binned_ent_avg
         # my_profiles[sub_id]['ent_med'] = binned_ent_med
