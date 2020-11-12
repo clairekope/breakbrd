@@ -238,6 +238,7 @@ for sub_id in my_subs[good_ids]:
         # Calculate some misc gas properties
         #
 
+        # Only the CGM should be this hot, eh?
         if ( temp>1e5*u.K ).any():
             T_hot_avg = np.average(temp[temp > 1e5*u.K], weights = mass[temp > 1e5*u.K])
         else:
@@ -373,15 +374,15 @@ if rank==0:
     for dic in profile_list:
         for k,v in dic.items():
             all_galprop[i,0] = k
-            all_galprop[i,1] = v['dm_mass'].value
-            all_galprop[i,2] = v['star_mass'].value
-            all_galprop[i,3] = v['ssfr'].value
-            all_galprop[i,4] = v['sat']
-            all_galprop[i,5] = v['j_gas_CGM'].value
-            all_galprop[i,6] = v['T_200'].value
-            all_galprop[i,7] = v['T_hot_avg'].value
-            all_galprop[i,8] = v['disp_200'].value
-            all_galprop[i,9] = v['disp_star'].value
+            all_galprop[i,1] = v['sat']
+            all_galprop[i,2] = v['dm_mass'].value
+            all_galprop[i,3] = v['star_mass'].value
+            all_galprop[i,4] = v['disp_200'].value
+            all_galprop[i,5] = v['disp_star'].value
+            all_galprop[i,6] = v['ssfr'].value
+            all_galprop[i,7] = v['j_gas_CGM'].value
+            all_galprop[i,8] = v['T_200'].value
+            all_galprop[i,9] = v['T_hot_avg'].value
 
             # all_entprof[i,0] = k
             # all_entprof[i,1::2] = v['ent_avg']
