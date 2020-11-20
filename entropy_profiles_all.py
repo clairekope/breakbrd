@@ -235,22 +235,39 @@ for sub_id in my_subs[good_ids]:
         assert tcool.unit == u.s
 
         #
-        # Calculate some misc gas properties
+        # Calculate some CGM gas properties
         #
 
-        # Only the CGM should be this hot, eh?
-        if ( temp>1e5*u.K ).any():
-            T_hot_avg = np.average(temp[temp > 1e5*u.K], weights = mass[temp > 1e5*u.K])
+        # I will probably change how I distinguish the CGM
+        # so that lower radii can be probed
+        r_CGM = 2*r_half # DeFelippis+20
+        CGM = r > r_CGM
+        M_gas_CGM = np.sum(mass[CGM])
+
+        # Temperatures
+        if ( temp > 1e5*u.K ).any():
+            hot_CGM = np.logical_and( temp > 1e5*u.K, CGM )
+            mass_CGM_hot  = np.sum(mass[hot_CGM])
+            T_hot_avg = np.average(temp[hot_CGM], weights = mass[hot_CGM])
         else:
+            mass_CGM_hot  = np.nan * u.Msun
             T_hot_avg = np.nan * u.K
 
+        if ( temp < 1e5*u.K).any():
+            cool_CGM = np.logical_and( temp < 1e5*u.K, CGM )
+            mass_CGM_cool = np.sum(mass[cool_CGM])
+        else:
+            mass_CGM_cool = np.nan * u.Msun
+
+        # Gas angular momentum
         # vel subtracts mass-weighted pec vel; same as COM vel?
         j_vec_gas = mass[:,np.newaxis]*np.cross(r_vec,vel)
-        r_CGM = 2*r_half # DeFelippis+20
-        M_gas_CGM = np.sum(mass[r > r_CGM])
-        j_vec_gas_CGM = np.sum(j_vec_gas[r > r_CGM], axis=0)/M_gas_CGM
+        j_vec_gas_CGM = np.sum(j_vec_gas[CGM], axis=0)/M_gas_CGM
         j_gas_CGM = np.sqrt(np.sum(j_vec_gas_CGM**2)).to('kpc*km/s')
         
+        my_profiles[sub_id]['mass_CGM'] = M_gas_CGM
+        my_profiles[sub_id]['mass_CGM_hot']  = mass_CGM_hot
+        my_profiles[sub_id]['mass_CGM_cool'] = mass_CGM_cool
         my_profiles[sub_id]['T_hot_avg'] = T_hot_avg
         my_profiles[sub_id]['j_gas_CGM'] = j_gas_CGM
 
@@ -271,16 +288,16 @@ for sub_id in my_subs[good_ids]:
         # binned_tcool_avg = np.ones_like(binned_r)*np.nan * u.s
         # binned_tcool_med = np.ones_like(binned_r)*np.nan * u.s
 
-        binned_mass_cool = np.ones_like(binned_r)*np.nan * u.Msun
-        binned_mass_hot  = np.ones_like(binned_r)*np.nan * u.Msun
+        # binned_mass_cool = np.ones_like(binned_r)*np.nan * u.Msun
+        # binned_mass_hot  = np.ones_like(binned_r)*np.nan * u.Msun
 
-        binned_mass_loK = np.zeros_like(binned_r) * u.Msun
-        binned_mass_hiK = np.zeros_like(binned_r) * u.Msun
+        # binned_mass_loK = np.zeros_like(binned_r) * u.Msun
+        # binned_mass_hiK = np.zeros_like(binned_r) * u.Msun
         
         # find central tendency for each radial bin
-        for i in range(1, r_edges.size):
-            this_bin = rbinner==i
-            if np.sum(mass[this_bin]) != 0: # are there particles in this bin
+        # for i in range(1, r_edges.size):
+        #     this_bin = rbinner==i
+        #     if np.sum(mass[this_bin]) != 0: # are there particles in this bin
 
                 # binned_ent_avg[i-1] = np.average(ent[this_bin],
                 #                                  weights = mass[this_bin])
@@ -294,13 +311,13 @@ for sub_id in my_subs[good_ids]:
                 #                                    weights = mass[this_bin])
                 # binned_tcool_med[i-1] = np.median(tcool[this_bin])
 
-                this_temp = temp[this_bin]
-                binned_mass_cool[i-1] = np.sum(mass[this_bin][this_temp < 1e5*u.K])
-                binned_mass_hot[i-1]  = np.sum(mass[this_bin][this_temp > 1e5*u.K])
+                # this_temp = temp[this_bin]
+                # binned_mass_cool[i-1] = np.sum(mass[this_bin][this_temp < 1e5*u.K])
+                # binned_mass_hot[i-1]  = np.sum(mass[this_bin][this_temp > 1e5*u.K])
 
-                this_ent = ent[this_bin]
-                binned_mass_loK[i-1] = np.sum(mass[this_bin][this_ent < 1e3*u.eV*u.cm**2])
-                binned_mass_hiK[i-1] = np.sum(mass[this_bin][this_ent > 1e3*u.eV*u.cm**2])
+                # this_ent = ent[this_bin]
+                # binned_mass_loK[i-1] = np.sum(mass[this_bin][this_ent < 1e3*u.eV*u.cm**2])
+                # binned_mass_hiK[i-1] = np.sum(mass[this_bin][this_ent > 1e3*u.eV*u.cm**2])
                 
         # my_profiles[sub_id]['ent_avg'] = binned_ent_avg
         # my_profiles[sub_id]['ent_med'] = binned_ent_med
@@ -308,12 +325,15 @@ for sub_id in my_subs[good_ids]:
         # my_profiles[sub_id]['pres_med'] = binned_pres_med
         # my_profiles[sub_id]['tcool_avg'] = binned_tcool_avg
         # my_profiles[sub_id]['tcool_med'] = binned_tcool_med
-        my_profiles[sub_id]['mass_cool'] = binned_mass_cool
-        my_profiles[sub_id]['mass_hot']  = binned_mass_hot
-        my_profiles[sub_id]['mass_loK'] = binned_mass_loK
-        my_profiles[sub_id]['mass_hiK'] = binned_mass_hiK
+        # my_profiles[sub_id]['mass_cool'] = binned_mass_cool
+        # my_profiles[sub_id]['mass_hot']  = binned_mass_hot
+        # my_profiles[sub_id]['mass_loK'] = binned_mass_loK
+        # my_profiles[sub_id]['mass_hiK'] = binned_mass_hiK
 
     else: # no gas
+        my_profiles[sub_id]['mass_CGM'] = np.nan * u.Msun
+        my_profiles[sub_id]['mass_CGM_hot']  = np.nan * u.Msun
+        my_profiles[sub_id]['mass_CGM_cool'] = np.nan * u.Msun
         my_profiles[sub_id]['T_hot_avg'] = np.nan * u.K
         my_profiles[sub_id]['j_gas_CGM'] = np.nan * u.km/u.s * u.kpc
         
@@ -323,10 +343,10 @@ for sub_id in my_subs[good_ids]:
         # my_profiles[sub_id]['pres_med'] = np.nan
         # my_profiles[sub_id]['tcool_avg'] = np.nan
         # my_profiles[sub_id]['tcool_med'] = np.nan
-        my_profiles[sub_id]['mass_cool'] = 0.0
-        my_profiles[sub_id]['mass_hot']  = 0.0
-        my_profiles[sub_id]['mass_loK'] = 0.0
-        my_profiles[sub_id]['mass_hiK'] = 0.0
+        # my_profiles[sub_id]['mass_cool'] = 0.0
+        # my_profiles[sub_id]['mass_hot']  = 0.0
+        # my_profiles[sub_id]['mass_loK'] = 0.0
+        # my_profiles[sub_id]['mass_hiK'] = 0.0
         
     #
     # Calculate stellar information
@@ -364,11 +384,11 @@ profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_galprop = np.zeros( (len(sub_ids), 10) )
+    all_galprop = np.zeros( (len(sub_ids), 13) )
     # all_entprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     # all_presprof = np.zeros( (len(sub_ids), 2*nbins+1) )
     # all_tcoolprof = np.zeros( (len(sub_ids), 2*nbins+1) )
-    all_massprof = np.zeros( (len(sub_ids), 4*nbins+1) )
+    # all_massprof = np.zeros( (len(sub_ids), 4*nbins+1) )
     
     i=0
     for dic in profile_list:
@@ -377,12 +397,15 @@ if rank==0:
             all_galprop[i,1] = v['sat']
             all_galprop[i,2] = v['dm_mass'].value
             all_galprop[i,3] = v['star_mass'].value
-            all_galprop[i,4] = v['disp_200'].value
-            all_galprop[i,5] = v['disp_star'].value
-            all_galprop[i,6] = v['ssfr'].value
-            all_galprop[i,7] = v['j_gas_CGM'].value
-            all_galprop[i,8] = v['T_200'].value
-            all_galprop[i,9] = v['T_hot_avg'].value
+            all_galprop[i,4] = v['mass_CGM'].value
+            all_galprop[i,5] = v['mass_CGM_hot'].value
+            all_galprop[i,6] = v['mass_CGM_cool'].value
+            all_galprop[i,7] = v['disp_200'].value
+            all_galprop[i,8] = v['disp_star'].value
+            all_galprop[i,9] = v['ssfr'].value
+            all_galprop[i,10] = v['j_gas_CGM'].value
+            all_galprop[i,11] = v['T_200'].value
+            all_galprop[i,12] = v['T_hot_avg'].value
 
             # all_entprof[i,0] = k
             # all_entprof[i,1::2] = v['ent_avg']
@@ -396,17 +419,17 @@ if rank==0:
             # all_tcoolprof[i,1::2] = v['tcool_avg']
             # all_tcoolprof[i,2::2] = v['tcool_med']
 
-            all_massprof[i,0] = k
-            all_massprof[i,1::4] = v['mass_cool']
-            all_massprof[i,2::4] = v['mass_hot']
-            all_massprof[i,3::4] = v['mass_loK']
-            all_massprof[i,4::4] = v['mass_hiK']
+            # all_massprof[i,0] = k
+            # all_massprof[i,1::4] = v['mass_cool']
+            # all_massprof[i,2::4] = v['mass_hot']
+            # all_massprof[i,3::4] = v['mass_loK']
+            # all_massprof[i,4::4] = v['mass_hiK']
             
             i+=1
 
     sort = np.argsort(all_galprop[:,0])
 
-    prop_header = "SubID,Sat,MassDark,MassStar,Disp200,DispStar,sSFR,jGas,T200,THot"
+    prop_header = "SubID,Sat,MassDark,MassStar,MassCGM,MassCGMHot,MassCGMCool,Disp200,DispStar,sSFR,jGas,T200,THot"
 
     header = "SubID"
     for r in binned_r:
@@ -424,5 +447,5 @@ if rank==0:
     #            delimiter=',', header=header)
     # np.savetxt(folder+'tcool_profiles_extended.csv', all_tcoolprof[sort],
     #            delimiter=',', header=header)
-    np.savetxt(folder+'mass_profiles_extended.csv', all_massprof[sort],
-               delimiter=',', header=mass_header)
+    # np.savetxt(folder+'mass_profiles_extended.csv', all_massprof[sort],
+    #            delimiter=',', header=mass_header)
