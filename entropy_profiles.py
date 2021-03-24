@@ -58,6 +58,7 @@ for sub_id in my_subs[good_ids]:
     sub = get(url_sbhalos + str(sub_id))
     dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
     r_half = sub["halfmassrad_stars"] * u.kpc * a0/littleh
+    r_half_gas = sub["halfmassrad_gas"] * u.kpc * a0/littleh
 
     my_profiles[sub_id]['dm_mass'] = dm_halo
 
@@ -140,12 +141,21 @@ for sub_id in my_subs[good_ids]:
         rbinner = np.digitize(r_scale, r_edges)
 
         dthresh = 0.1 * u.cm**-3 * m_p # cannonical star formation density threshold
-        target_gas = np.logical_and(dens > dthresh, r < 2*r_half)
-        if target_gas.sum() > 0:
-            whole_avg_ent = np.average(ent[target_gas], weights=mass[target_gas])
-            my_profiles[sub_id]['full_ent_avg'] = whole_avg_ent
+
+        dense_disk = np.logical_and(dens > dthresh, r < 2*r_half)
+        if dense_disk.sum() > 0:
+            disk_avg_ent = np.average(ent[dense_disk], weights=mass[dense_disk])
+            my_profiles[sub_id]['disk_ent_avg'] = disk_avg_ent
         else:
-            my_profiles[sub_id]['full_ent_avg'] = np.nan * u.eV*u.cm**2
+            my_profiles[sub_id]['disk_ent_avg'] = np.nan * u.eV*u.cm**2
+
+        inner_CGM = np.logical_and(r > 2*r_half, r < r_half_gas)
+        dense_inner = np.logical_and(dens > dthresh, inner_CGM)
+        if dense_inner.sum() > 0:
+            inner_avg_ent = np.average(ent[dense_inner], weights=mass[dense_inner])
+            my_profiles[sub_id]['inner_ent_avg'] = inner_avg_ent
+        else:
+            my_profiles[sub_id]['inner_ent_avg'] = np.nan * u.eV*u.cm**2
 
         binned_ent_avg = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
         binned_ent_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
@@ -171,7 +181,7 @@ for sub_id in my_subs[good_ids]:
         my_profiles[sub_id]['pres_med'] = binned_pres_med
 
     else: # no gas
-        my_profiles[sub_id]['full_ent_avg'] = np.nan * u.eV*u.cm**2
+        my_profiles[sub_id]['disk_ent_avg'] = np.nan * u.eV*u.cm**2
         my_profiles[sub_id]['ent_avg'] = np.nan
         my_profiles[sub_id]['ent_med'] = np.nan
         my_profiles[sub_id]['pres_avg'] = np.nan
@@ -181,7 +191,7 @@ profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_entprof = np.zeros( (len(sub_list), 2*nbins+3) )
+    all_entprof = np.zeros( (len(sub_list), 2*nbins+4) )
     all_presprof = np.zeros( (len(sub_list), 2*nbins+2) )
 
     i=0
@@ -189,9 +199,10 @@ if rank==0:
         for k,v in dic.items():
             all_entprof[i,0] = k
             all_entprof[i,1] = v['dm_mass'].value
-            all_entprof[i,2] = v['full_ent_avg'].value
-            all_entprof[i,3::2] = v['ent_avg']
-            all_entprof[i,4::2] = v['ent_med']
+            all_entprof[i,2] = v['disk_ent_avg'].value
+            all_entprof[i,3] = v['inner_ent_avg'].value
+            all_entprof[i,4::2] = v['ent_avg']
+            all_entprof[i,5::2] = v['ent_med']
             
             all_presprof[i,0] = k
             all_presprof[i,1] = v['dm_mass'].value
@@ -203,7 +214,7 @@ if rank==0:
     ent_sort = np.argsort(all_entprof[:,0])
     pres_sort = np.argsort(all_presprof[:,0])
 
-    header = "SubID   DMmass   AvgEnt"
+    header = "SubID   DMmass   DskEnt   CGMEnt"
     for r in binned_r:
         header += "   {:.4f} avg med".format(r)
 
