@@ -26,20 +26,20 @@ if rank==0:
 
     part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
     sub_list = part_data['id'].astype(np.int32)
-    # sat = part_data['satellite'].astype(np.bool)
+    sat = part_data['satellite'].astype(np.bool)
 
     # np.random.seed(6841325)
     # subset = np.random.choice(sub_list[sat], size=500, replace=False)
     
     del part_data
-    # del sat
+    del sat
     
 else:
-    # subset = None
+    subset = None
     sub_list = None
                                    
 my_subs = scatter_work(sub_list, rank, size)
-# my_subs = scatter_work(subset, rank, size)
+#my_subs = scatter_work(subset, rank, size)
 sub_list = comm.bcast(sub_list, root=0)
 
 boxsize = get(url_dset)['boxsize']
@@ -57,6 +57,7 @@ for sub_id in my_subs[good_ids]:
 
     sub = get(url_sbhalos + str(sub_id))
     dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
+    r_half = sub["halfmassrad_stars"] * u.kpc * a0/littleh
 
     my_profiles[sub_id]['dm_mass'] = dm_halo
 
@@ -132,12 +133,19 @@ for sub_id in my_subs[good_ids]:
 
         mass = mass * 1e10 / littleh * u.Msun
 
-        # TODO calculate r200 and bin K in scaled radial bins
         r200 = (G*dm_halo/(100*H0**2))**(1/3)
         r200 = r200.to('kpc')
 
         r_scale = (r/r200).value
         rbinner = np.digitize(r_scale, r_edges)
+
+        dthresh = 0.1 * u.cm**-3 * m_p # cannonical star formation density threshold
+        target_gas = np.logical_and(dens > dthresh, r < 2*r_half)
+        if target_gas.sum() > 0:
+            whole_avg_ent = np.average(ent[target_gas], weights=mass[target_gas])
+            my_profiles[sub_id]['full_ent_avg'] = whole_avg_ent
+        else:
+            my_profiles[sub_id]['full_ent_avg'] = np.nan * u.eV*u.cm**2
 
         binned_ent_avg = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
         binned_ent_med = np.ones_like(binned_r)*np.nan * u.eV*u.cm**2
@@ -163,6 +171,7 @@ for sub_id in my_subs[good_ids]:
         my_profiles[sub_id]['pres_med'] = binned_pres_med
 
     else: # no gas
+        my_profiles[sub_id]['full_ent_avg'] = np.nan * u.eV*u.cm**2
         my_profiles[sub_id]['ent_avg'] = np.nan
         my_profiles[sub_id]['ent_med'] = np.nan
         my_profiles[sub_id]['pres_avg'] = np.nan
@@ -172,7 +181,7 @@ profile_list = comm.gather(my_profiles, root=0)
 
 if rank==0:
 
-    all_entprof = np.zeros( (len(sub_list), 2*nbins+2) )
+    all_entprof = np.zeros( (len(sub_list), 2*nbins+3) )
     all_presprof = np.zeros( (len(sub_list), 2*nbins+2) )
 
     i=0
@@ -180,8 +189,9 @@ if rank==0:
         for k,v in dic.items():
             all_entprof[i,0] = k
             all_entprof[i,1] = v['dm_mass'].value
-            all_entprof[i,2::2] = v['ent_avg']
-            all_entprof[i,3::2] = v['ent_med']
+            all_entprof[i,2] = v['full_ent_avg'].value
+            all_entprof[i,3::2] = v['ent_avg']
+            all_entprof[i,4::2] = v['ent_med']
             
             all_presprof[i,0] = k
             all_presprof[i,1] = v['dm_mass'].value
@@ -193,11 +203,11 @@ if rank==0:
     ent_sort = np.argsort(all_entprof[:,0])
     pres_sort = np.argsort(all_presprof[:,0])
 
-    header = "SubID   DMmass"
+    header = "SubID   DMmass   AvgEnt"
     for r in binned_r:
         header += "   {:.4f} avg med".format(r)
 
-    np.savetxt(folder+'entropy_profiles.csv', all_entprof[ent_sort], 
+    np.savetxt(folder+'parent_entropy_profiles.csv', all_entprof[ent_sort], 
                delimiter=',', header=header)
-    np.savetxt(folder+'pressure_profiles.csv', all_presprof[pres_sort],
+    np.savetxt(folder+'parent_pressure_profiles.csv', all_presprof[pres_sort],
                delimiter=',', header=header)
