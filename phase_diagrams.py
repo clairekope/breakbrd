@@ -1,5 +1,7 @@
 import matplotlib; matplotlib.use('agg')
 import matplotlib.pyplot as plt
+from matplotlib.colors import LogNorm
+import gc
 import sys
 import h5py
 import readsubfHDF5
@@ -25,14 +27,29 @@ binned_r = r_edges[:-1] + np.diff(r_edges)
 
 if rank==0:
 
-    part_data = np.genfromtxt(folder+"parent_particle_data.csv", names=True)
-    sub_list = part_data['id'].astype(np.int32)
-    sat = part_data['satellite'].astype(np.bool)
+    min_mass = 100 * littleh # 1e12 Msun
+    max_mass = 1000 * littleh # 1e13 Msun
+    search_query = "?mass_dm__gt=" + str(min_mass) \
+                 + "&mass_dm__lt=" + str(max_mass)
+
+    cut = get(url_sbhalos + search_query)
+    cut = get(url_sbhalos + search_query, {'limit':cut['count'], 'order_by':'id'})
+
+    sub_list = np.array([sub['id'] for sub in cut['results']], dtype='i')
+
+    if args.local:
+        cat = readsubfHDF5.subfind_catalog(args.local, snapnum, #grpcat=False, subcat=False,
+                                           keysel=['GroupFirstSub','SubhaloGrNr'])
+        sat = (sub_list != cat.GroupFirstSub[cat.SubhaloGrNr[sub_list]])
+        del cat
+        gc.collect()
+
+    print(sub_list.size, 
+          get(url_sbhalos + search_query + "&mass_stars__gt="+str(littleh))['count'])
 
     np.random.seed(6841325)
-    subset = np.random.choice(sub_list[sat], size=10, replace=False)
+    subset = np.random.choice(sub_list[~sat], size=10, replace=False)
     
-    del part_data
     del sat
     
 else:
@@ -50,16 +67,15 @@ a0 = 1/(1+z)
 H0 = littleh * 100 * u.km/u.s/u.Mpc
 
 good_ids = np.where(my_subs > -1)[0]
-my_profiles = {}
 
 for sub_id in my_subs[good_ids]:
 
-    my_profiles[sub_id] = {}
-
     sub = get(url_sbhalos + str(sub_id))
     dm_halo = sub["mass_dm"] * 1e10 / littleh * u.Msun
+    r_half = sub["halfmassrad_stars"] * u.kpc * a0/littleh
 
-    my_profiles[sub_id]['dm_mass'] = dm_halo
+    r200 = (G*dm_halo/(100*H0**2))**(1/3)
+    r200 = r200.to('kpc')
 
     gas = True
     if not args.local:
@@ -131,16 +147,74 @@ for sub_id in my_subs[good_ids]:
 
         stat, d_edges, t_edges, binner = \
             binned_statistic_2d(dens, temp, mass, statistic='sum',
-                                bins=[np.logspace(np.log10(dens.min()),
-                                                  np.log10(dens.max()), 64),
-                                      np.logspace(np.log10(temp.min()),
-                                                  np.log10(temp.max()), 64)])
+                                bins=[np.logspace(-30.5, -23, 64),
+                                      np.logspace(3.5, 7, 64)])
         
-        p = plt.pcolormesh(d_edges, t_edges, stat)
+        p = plt.pcolormesh(d_edges, t_edges, stat.T,
+                           norm=LogNorm(vmin=1e6, vmax=1e9))
         c = plt.colorbar(p)
-        c.set_label('Gas Mass [M$_\odot$')
+        c.set_label('Total Gas Mass [M$_\odot$]')
         plt.xscale('log')
         plt.yscale('log')
         plt.xlabel('Density [g/cm$^3$]')
         plt.ylabel('Temperature [K]')
-        plt.save(sub_id+'_gas_density_temperature_mass.png')
+        plt.savefig(str(sub_id)+'_total_density_temperature_mass.png')
+        plt.clf()
+
+        # Only "CGM"
+        CGM = r > 2*r_half
+        # stat, d_edges, t_edges, binner = \
+        #     binned_statistic_2d(dens[CGM], temp[CGM], mass[CGM],
+        #                         statistic='sum',
+        #                         bins=[np.logspace(-30.5, -23, 64),
+        #                               np.logspace(4, 7, 64)])
+        
+        # p = plt.pcolormesh(d_edges, t_edges, stat.T,
+        #                    norm=LogNorm(vmin=1e6, vmax=1e9))
+        # c = plt.colorbar(p)
+        # c.set_label('Total Gas Mass [M$_\odot$]')
+        # plt.xscale('log')
+        # plt.yscale('log')
+        # plt.xlabel('Density [g/cm$^3$]')
+        # plt.ylabel('Temperature [K]')
+        # plt.savefig(str(sub_id)+'_CGM_density_temperature_mass.png')
+        # plt.clf()
+
+        # Only not CGM
+        stat, d_edges, t_edges, binner = \
+            binned_statistic_2d(dens[~CGM], temp[~CGM], mass[~CGM],
+                                statistic='sum',
+                                bins=[np.logspace(-30.5, -23, 64),
+                                      np.logspace(3.5, 7, 64)])
+        
+        p = plt.pcolormesh(d_edges, t_edges, stat.T,
+                           norm=LogNorm(vmin=1e6, vmax=1e9))
+        c = plt.colorbar(p)
+        c.set_label('Total Gas Mass [M$_\odot$]')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Density [g/cm$^3$]')
+        plt.ylabel('Temperature [K]')
+        plt.title(r"$\log(2r_{\rm half}/r_{200}) =$" + "{}".format(np.log10(2*r_half/r200)))
+        plt.savefig(str(sub_id)+'_galaxy_density_temperature_mass.png')
+        plt.clf()
+
+        # Only within 1 r_half
+        inner = r < r_half
+        stat, d_edges, t_edges, binner = \
+            binned_statistic_2d(dens[inner], temp[inner], mass[inner],
+                                statistic='sum',
+                                bins=[np.logspace(-30.5, -23, 64),
+                                      np.logspace(3.5, 7, 64)])
+        
+        p = plt.pcolormesh(d_edges, t_edges, stat.T,
+                           norm=LogNorm(vmin=1e6, vmax=1e9))
+        c = plt.colorbar(p)
+        c.set_label('Total Gas Mass [M$_\odot$]')
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Density [g/cm$^3$]')
+        plt.ylabel('Temperature [K]')
+        plt.title(r"$\log(r_{\rm half}/r_{200}) =$" + "{}".format(np.log10(r_half/r200)))
+        plt.savefig(str(sub_id)+'_1rhalf_density_temperature_mass.png')
+        plt.clf()

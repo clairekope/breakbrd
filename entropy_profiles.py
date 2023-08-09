@@ -182,6 +182,7 @@ for sub_id in my_subs[good_ids]:
 
     else: # no gas
         my_profiles[sub_id]['disk_ent_avg'] = np.nan * u.eV*u.cm**2
+        my_profiles[sub_id]['inner_ent_avg'] = np.nan * u.eV*u.cm**2
         my_profiles[sub_id]['ent_avg'] = np.nan
         my_profiles[sub_id]['ent_med'] = np.nan
         my_profiles[sub_id]['pres_avg'] = np.nan

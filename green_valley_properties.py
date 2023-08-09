@@ -140,9 +140,9 @@ for sub_id in my_subs[good_ids]:
                                          "NE  ", 0, -1, sub_id, long_ids=True,
                                          double_output=False).astype("float32")
 
-            # cool_rate = readhaloHDF5.readhalo(args.local, "snap", snapnum,
-            #                                   "GCOL", 0, -1, sub_id, long_ids=True,
-            #                                   double_output=False).astype("float32")
+            cool_rate = readhaloHDF5.readhalo(args.local, "snap", snapnum,
+                                              "GCOL", 0, -1, sub_id, long_ids=True,
+                                              double_output=False).astype("float32")
             
         except AttributeError:
             gas = False
@@ -244,8 +244,8 @@ for sub_id in my_subs[good_ids]:
         # Calculate some CGM gas properties
         #
 
-        I will probably change how I distinguish the CGM
-        so that lower radii can be probed
+        # I will probably change how I distinguish the CGM
+        # so that lower radii can be probed
         r_CGM = 2*r_half # DeFelippis+20, Zinger+20
         CGM = r > r_CGM
         M_gas_CGM = np.sum(mass[CGM])
@@ -295,7 +295,7 @@ for sub_id in my_subs[good_ids]:
         my_profiles[sub_id]['T_hot_avg'] = T_hot_avg
         my_profiles[sub_id]['j_gas_CGM'] = j_gas_CGM
         my_profiles[sub_id]['disk_ent_avg'] = disk_avg_ent
-        my_profiles[sub_id]['inner_ent_avg'] = inner_ent_avg
+        my_profiles[sub_id]['inner_ent_avg'] = inner_avg_ent
 
         #
         # Calculate & store radial profiles

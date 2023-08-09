@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH -N 1 
-#SBATCH -n 128 
-#SBATCH --job-name='aux_quan'
-#SBATCH -t 12:00:00 
+#SBATCH -N 2
+#SBATCH -n 128
+#SBATCH --job-name='GV_ent_sm'
+#SBATCH -t 168:00:00
 #SBATCH --mem-per-cpu=2GB 
 
 export PIPELINE_ARGS='0.0 --tng -m -l/mnt/research/galaxies-REU/sims/IllustrisTNG'
@@ -26,4 +26,5 @@ cd $SLURM_SUBMIT_DIR
 #echo "Getting Densities"; mpirun python3 galaxy_density.py $PIPELINE_ARGS
 #mpirun python3 alt_galaxy_environ.py $PIPELINE_ARGS  
 #mpirun python3 particle_info_tracked.py $PIPELINE_ARGS
+#mpirun python3 entropy_profiles.py $PIPELINE_ARGS
 mpirun python3 green_valley_properties.py $PIPELINE_ARGS

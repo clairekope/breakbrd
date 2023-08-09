@@ -2,6 +2,7 @@ import requests
 import numpy as np
 import argparse
 import warnings
+from requests.exceptions import ConnectionError, ReadTimeout
 
 # Are we using MPI? If yes, we must set up MPI runtime first
 try:
@@ -15,6 +16,7 @@ try:
         """ will only work if MPI has been initialized by calling script.
             array should only exist on root & be None elsewhere"""
         if mpi_rank == root:
+            print(f"Scattering array to {mpi_size} ranks")
             scatter_total = array.size
             mod = scatter_total % mpi_size
             if mod != 0:
@@ -40,15 +42,28 @@ except ImportError: # no mpi4py
 def get(path, params=None, fpath=""):
     
     attempt = 1
+    connection_reset = False
 
     # make HTTP GET request to path
     headers = {"api-key":"5309619565f744f9248320a886c59bec"}
-    r = requests.get(path, params=params, headers=headers)
-    
-    while r.status_code==503 or r.status_code==502: # Server Error; try again
-        attempt += 1
-        print(f"Error 503 for {path}; attempt {attempt}", flush=True)
+
+    try:
         r = requests.get(path, params=params, headers=headers)
+        status_code = r.status_code
+    except ConnectionError or ReadTimeout:
+        attempt += 1
+        connection_reset = True
+        status_code = None # dummy
+    
+    while status_code==503 or status_code==502 or connection_reset: # Server Error; try again
+        attempt += 1
+        print(f"Error for {path}; attempt {attempt}", flush=True)
+        try:
+            r = requests.get(path, params=params, headers=headers)
+            status_code = r.status_code
+            connection_reset = False # break loop
+        except ConnectionError or ReadTimeout:
+            continue
 
     # raise exception for other response codes that aren't HTTP SUCCESS (200)
     r.raise_for_status()
@@ -140,7 +155,7 @@ else:
 
     if args.z==0.0:
         snapnum = 99
-        folder = 'z00_TNG/'
+        folder = '/mnt/gs18/scratch/users/kopenhaf/z00_TNG/'
 
     elif args.z==0.5:
         snapnum = 67
